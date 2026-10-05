@@ -306,8 +306,7 @@ void FeatureExtractor::processHop(const float* left, const float* right)
 
     // ---- densities: exponentially weighted event rates over ~4 s ------------------------
     {
-        const double hopSec = hopSize / sr;
-        const double win = 2.5, decay = std::exp(-hopSec / win);
+        const double win = 2.5, decay = std::exp(-hopSec / win);   // (hopSec from the structure section above)
         kickRate  = kickRate  * decay + (kickHit ? 1.0 / win : 0.0);
         onsetRate = onsetRate * decay + ((onsetHit || snareHit || hatHit) ? 1.0 / win : 0.0);
         f.kickDensity  = clamp01(float(kickRate / 2.5));

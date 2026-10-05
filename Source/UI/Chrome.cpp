@@ -290,16 +290,6 @@ SettingsPanel::SettingsPanel(DaliVisualProcessor& p) : proc(p), display(p), sour
     noteScenes.onClick = [this] { proc.midi.noteSceneSwitching = noteScenes.getToggleState(); };
     programScenes.onClick = [this] { proc.midi.programChangeScenes = programScenes.getToggleState(); };
     identify.onClick = [this] { proc.output.identifyDisplays(); };
-    undoBtn.onClick = [this] { proc.undo(); };
-    redoBtn.onClick = [this] { proc.redo(); };
-    undoBtn.setTooltip("Undo (Ctrl+Z): resets, scene inits, cleared routes...");
-    redoBtn.setTooltip("Redo (Ctrl+Y)");
-    chaos.setClickingTogglesState(true);
-    chaos.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xffd81b60));
-    chaos.setTooltip("CHAOS: everything to the most psychedelic level - full trip, deepest symmetry and trails, "
-                     "the music read as its wildest. MIDI-learnable (right-click is not needed: map it in the host)");
-    if (auto* prm = proc.apvts.getParameter(dali::params::id::chaosMode))
-        chaosAttachment = std::make_unique<juce::ButtonParameterAttachment>(*prm, chaos);
     openOutput.onClick = [this] { proc.output.toggle(); refresh(); };
     clearMidi.onClick = [this] { proc.midi.clearAll(); };
     setSize(580, 640);
