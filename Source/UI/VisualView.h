@@ -22,8 +22,10 @@ public:
     void mouseDoubleClick(const juce::MouseEvent&) override { if (onDoubleClick) onDoubleClick(); }
 
     std::function<void()> onDoubleClick;
+    EngineState& state() noexcept { return engineState; }
 
 private:
+    EngineState& engineState;
     juce::OpenGLContext context;
     RenderEngine engine;
 

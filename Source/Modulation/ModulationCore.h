@@ -20,7 +20,7 @@ enum class ModSource : int
     SyncLFO, SyncSaw, SyncSquare, Centroid, Flux, StereoWidth, StereoEnergy, StereoPan,
     RMS, Peak, MidiTrigger, RandomStep, Snare, HiHat, Build, Drop,
     Sub, LowMid, HighMid, BassSlow, EnergySlow, KickDensity, OnsetDensity, DynamicRange,
-    StateCalm, StateBuild, StatePeak, StateChaos, StateRelease, count
+    StateCalm, StateBuild, StatePeak, StateChaos, StateRelease, Bassline, count
 };
 
 inline const char* modSourceName(ModSource s)
@@ -29,7 +29,7 @@ inline const char* modSourceName(ModSource s)
         "Beat Phase", "Bar Phase", "Sync LFO", "Sync Saw", "Sync Square", "Centroid", "Flux", "Stereo Width",
         "Stereo Energy", "Stereo Pan", "RMS", "Peak", "MIDI Trigger", "Random Step", "Snare", "Hi-Hat", "Build", "Drop",
         "Sub", "Low Mid", "High Mid", "Bass (slow)", "Energy (slow)", "Kick Density", "Onset Density", "Dynamic Range",
-        "State: Calm", "State: Build", "State: Peak", "State: Chaos", "State: Release" };
+        "State: Calm", "State: Build", "State: Peak", "State: Chaos", "State: Release", "Bassline" };
     const int i = int(s);
     return (i >= 0 && i < int(ModSource::count)) ? names[i] : "?";
 }

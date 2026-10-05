@@ -1,4 +1,5 @@
 #include "RenderEngine.h"
+#include "../Output/NativeWindow.h"
 #include "../Output/FrameSink.h"
 
 using namespace juce::gl;
@@ -355,6 +356,7 @@ void RenderEngine::updateModulation(float dt)
     sources[ModSource::StatePeak]    = au.state[2];
     sources[ModSource::StateChaos]   = au.state[3];
     sources[ModSource::StateRelease] = au.state[4];
+    sources[ModSource::Bassline]     = au.bassNote;
 
     const auto version = state.matrix.getVersion();
     if (version != lastMatrixVersion) { lastMatrixVersion = version; modEngine.reset(); }
@@ -744,9 +746,19 @@ void RenderEngine::renderOpenGL()
         for (auto* s : state.sinks) s->publishFrame(finalTarget.texture(), w, h);
     }
 
+    // the screen pass fills the REAL surface: on mixed-DPI setups the scale factor can disagree with the
+    // window, which left dead borders around the output; the drawable's true size is the authority
+    int screenW = physW, screenH = physH;
+    if (role == Role::Output)
+    {
+        int dw = 0, dh = 0;
+        if (native::currentDrawableSize(dw, dh)) { screenW = dw; screenH = dh; }
+    }
+    if (role == Role::Output) { state.telemetry.outSurfaceW = screenW; state.telemetry.outSurfaceH = screenH;
+                                state.telemetry.outRenderW = w; state.telemetry.outRenderH = h; }
     glBindFramebuffer(GL_FRAMEBUFFER, GLuint(screenFbo));
-    glViewport(0, 0, physW, physH);
-    runOutput(physW, physH);
+    glViewport(0, 0, screenW, screenH);
+    runOutput(screenW, screenH);
 
     bindTexture(0, src);                                  // other passes sample it at level 0 only
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

@@ -3,7 +3,7 @@
 namespace dali
 {
 VisualView::VisualView(EngineState& state, RenderEngine::Role role)
-    : engine(state, context, role)
+    : engineState(state), engine(state, context, role)
 {
     setOpaque(true);
     context.setOpenGLVersionRequired(juce::OpenGLContext::openGL3_2);

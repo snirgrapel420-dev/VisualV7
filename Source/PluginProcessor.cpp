@@ -130,6 +130,67 @@ void DaliVisualProcessor::applySceneInit()
     set(id::macroA, in.a); set(id::macroB, in.b); set(id::macroC, in.c); set(id::macroD, in.d);
     set(id::tripAmount, in.trip); set(id::intensity, in.intensity); set(id::speed, in.speed * 2.0f);   // Motion is a x0..x3 multiplier: 0.5 -> x1.0
     set(id::bloom, in.bloom); set(id::motionSmooth, in.smooth);
+
+    // the scene's own MODULATION: which role drives what, visible and editable in the MOD tab.
+    // Grammar (every scene): KICK -> the light (macro B) | MIDS -> the structure (macro A) |
+    // slow BASS -> the speed (macro C) | HI-HAT -> bloom | SNARE -> trip | BASSLINE -> intensity |
+    // CHAOS state -> the colour family (macro D). Amounts per scene, exceptions where the concept asks.
+    struct Route { dali::ModSource src; const char* target; float amount, attackMs, releaseMs; };
+    using MS = dali::ModSource;
+    //                       kick  mid   bassS hat   snare bline chaos
+    static const float amt[][7] = {
+        /* 01 Kali       */ { 0.35f, 0.20f, 0.20f, 0.15f, 0.25f, 0.12f, 0.00f },
+        /* 02 Tidal      */ { 0.35f, 0.15f, 0.20f, 0.15f, 0.20f, 0.10f, 0.30f },
+        /* 03 Tunnel     */ { 0.15f, 0.25f, 0.30f, 0.15f, 0.30f, 0.12f, 0.35f },
+        /* 04 Apollonian */ { 0.40f, 0.12f, 0.20f, 0.15f, 0.25f, 0.12f, 0.30f },
+        /* 05 Gyroid     */ { 0.40f, 0.15f, 0.25f, 0.15f, 0.25f, 0.12f, 0.30f },
+        /* 06 Mandelbulb */ { 0.40f, 0.20f, 0.20f, 0.15f, 0.25f, 0.12f, 0.30f },
+        /* 07 Fourth Dim */ { 0.35f, 0.15f, 0.25f, 0.15f, 0.25f, 0.12f, 0.30f },
+        /* 08 Mandelbox  */ { 0.40f, 0.10f, 0.20f, 0.15f, 0.25f, 0.12f, 0.30f },
+        /* 09 Crystal    */ { 0.45f, 0.08f, 0.20f, 0.18f, 0.25f, 0.12f, 0.30f },
+        /* 10 Menger     */ { 0.40f, 0.06f, 0.30f, 0.15f, 0.30f, 0.12f, 0.35f },
+        /* 11 Julia      */ { 0.35f, 0.25f, 0.20f, 0.15f, 0.25f, 0.12f, 0.30f },
+        /* 12 Ocean      */ { 0.30f, 0.10f, 0.25f, 0.10f, 0.15f, 0.10f, 0.30f },
+        /* 13 Gate       */ { 0.45f, 0.08f, 0.30f, 0.15f, 0.30f, 0.12f, 0.35f },
+        /* 14 Megastruct */ { 0.40f, 0.10f, 0.25f, 0.15f, 0.25f, 0.12f, 0.30f },
+        /* 15 KIFS       */ { 0.40f, 0.12f, 0.20f, 0.15f, 0.25f, 0.12f, 0.30f },
+        /* 16 Biomech    */ { 0.40f, 0.10f, 0.25f, 0.15f, 0.25f, 0.12f, 0.30f },
+        /* 17 Nebula     */ { 0.35f, 0.15f, 0.20f, 0.12f, 0.20f, 0.12f, 0.30f },
+        /* 18 Sierpinski */ { 0.45f, 0.06f, 0.20f, 0.15f, 0.30f, 0.12f, 0.30f },
+        /* 19 Torus      */ { 0.40f, 0.20f, 0.20f, 0.15f, 0.25f, 0.12f, 0.30f },
+        /* 20 Image      */ { 0.20f, 0.20f, 0.00f, 0.10f, 0.25f, 0.10f, 0.00f },
+    };
+    const int row = juce::jlimit(0, int(sizeof(amt) / sizeof(amt[0])) - 1, scene);
+    const float* k = amt[row];
+    const juce::String sceneId(dali::sceneLibrary()[size_t(scene)].id);
+    // targets follow the grammar, with the exceptions the concepts ask for
+    juce::String kickT = id::macroB, midT = id::macroA, bassT = id::macroC, chaosT = id::macroD;
+    if (sceneId == "kali")  { kickT = id::macroD; }                         // Kali: macro D is its glow
+    if (sceneId == "ocean") { bassT = id::macroA; midT = id::macroC; }      // Ocean: the bass is the swell
+    if (sceneId == "nexus") { midT = id::macroC; bassT = id::macroA; }      // Torus: the mids spin the rings
+    if (sceneId == "image") { kickT = id::macroC; }                         // Image: the kick punches the zoom
+    const Route routes[] = {
+        { MS::Kick,       kickT.toRawUTF8(),  k[0],   0.0f,  160.0f },
+        { MS::Mid,        midT.toRawUTF8(),   k[1],  60.0f,  450.0f },
+        { MS::BassSlow,   bassT.toRawUTF8(),  k[2], 200.0f,  900.0f },
+        { MS::HiHat,      "bloom",            k[3],   0.0f,   90.0f },
+        { MS::Snare,      sceneId == "image" ? "macroD" : "tripAmount", k[4], 0.0f, 240.0f },
+        { MS::Bassline,   "intensity",        k[5],   0.0f,  110.0f },
+        { MS::StateChaos, chaosT.toRawUTF8(), k[6], 600.0f, 2500.0f },
+    };
+    auto slots = matrix.getSlots();
+    for (auto& sl : slots) { sl = dali::ModSlot {}; sl.source = 0; sl.target = -1; }
+    size_t n = 0;
+    for (auto& r : routes)
+    {
+        if (r.amount <= 0.0f || n >= slots.size()) continue;
+        const int t = dali::ModulationTarget::fromParamId(r.target);
+        if (t < 0) continue;
+        auto& sl = slots[n++];
+        sl.enabled = true; sl.source = int(r.src); sl.target = t; sl.amount = r.amount;
+        sl.attackMs = r.attackMs; sl.releaseMs = r.releaseMs; sl.smoothingMs = 20.0f;
+    }
+    matrix.setAll(slots);
 }
 
 juce::String DaliVisualProcessor::getInputSourceStatus() const

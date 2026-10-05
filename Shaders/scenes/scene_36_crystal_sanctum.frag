@@ -70,7 +70,7 @@ void main()
 
     // the camera orbits the sanctum; bass carries it around, BUILD rises above the spires
     float orbit = uBassTime * (0.05 + 0.2 * uMacro.z) + uTime * 0.02;
-    float radius = 8.5 - 1.0 * uState.z + 0.5 * uState.x;
+    float radius = 7.0 - 0.8 * uState.z + 0.4 * uState.x;
     vec3 ro = vec3(radius * sin(orbit), 2.2 + 2.2 * build + 0.4 * sin(uMidTime * 0.04), radius * cos(orbit));
     vec3 ta = vec3(0.0, 1.8 + 0.6 * build, 0.0);
     vec3 fw = normalize(ta - ro);
@@ -137,7 +137,7 @@ void main()
     col += C3 * step(0.994 - 0.006 * uHigh, hash12(floor(sg))) * smoothstep(0.25, 0.0, length(fract(sg) - 0.5)) * (0.4 + uHigh + 0.6 * uHat);
 
     col *= 1.0 - 0.1 * calm;
-    col *= smoothstep(1.5, 0.45, length(uv * vec2(0.8, 1.0)));
+    col *= smoothstep(2.4, 0.6, length(uv * vec2(0.8, 1.0)));      // soft vignette: the frame stays full on a big screen
     col *= uIntensity * 1.35 * mix(0.6, 1.0, uActivity);
     fragColor = vec4(col, 1.0);
 }

@@ -54,7 +54,7 @@ void main()
     gPower = 6.0 + 3.0 * uMacro.x + 1.2 * sin(uMidTime * 0.03) + 0.9 * uKick + 0.6 * chaos * sin(uHighTime * 1.5) + 0.7 * uMid;                // mids re-grow the form
 
     float orbit = uBassTime * (0.04 + 0.14 * uMacro.z) + uMidTime * 0.01 + 0.6 * uSnare;
-    float dist = 4.1 + 0.9 * build - 0.2 * peak - 0.12 * uKick - 0.35 * uSub;
+    float dist = 3.3 + 0.7 * build - 0.2 * peak - 0.12 * uKick - 0.35 * uSub;
     vec3 ro = vec3(dist * sin(orbit), 0.6 * sin(orbit * 0.7 + uMidTime * 0.02), dist * cos(orbit));
     vec3 fw = normalize(-ro);
     vec3 rt = normalize(cross(vec3(0.0, 1.0, 0.0), fw));
@@ -102,7 +102,7 @@ void main()
     col += mix(C1, C2, 0.5) * glow * (0.2 + 0.8 * uMacro.y) * (0.3 + 0.7 * peak + 0.8 * uKick);
 
     col *= 1.0 - 0.1 * calm;
-    col *= smoothstep(1.5, 0.45, length(uv * vec2(0.8, 1.0)));
+    col *= smoothstep(2.4, 0.6, length(uv * vec2(0.8, 1.0)));      // soft vignette: the frame stays full on a big screen
     col *= uIntensity * 1.05 * mix(0.6, 1.0, uActivity);
     fragColor = vec4(col, 1.0);
 }

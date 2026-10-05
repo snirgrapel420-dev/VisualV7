@@ -88,7 +88,7 @@ void main()
     col += mix(C2, C3, 0.5) * build * 0.8 * exp(-length(uv) * 9.0) * trans;
 
     col *= 1.0 - 0.1 * calm;
-    col *= smoothstep(1.5, 0.45, length(uv * vec2(0.8, 1.0)));
+    col *= smoothstep(2.4, 0.6, length(uv * vec2(0.8, 1.0)));      // soft vignette: the frame stays full on a big screen
     col *= uIntensity * 1.4 * mix(0.6, 1.0, uActivity);
     col *= 0.85;                                   // exposure matched to the other scenes (consistency pass)
     fragColor = vec4(col, 1.0);

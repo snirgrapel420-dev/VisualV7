@@ -61,7 +61,7 @@ void main()
     float build = uState.y, peak = uState.z, chaos = uState.w, calm = uState.x;
 
     float orbit = uBassTime * 0.05 + uTime * 0.02;
-    vec3 ro = 6.2 * vec3(sin(orbit), 0.35 + 0.25 * build, cos(orbit));
+    vec3 ro = 5.0 * vec3(sin(orbit), 0.35 + 0.25 * build, cos(orbit));
     vec3 fw = normalize(-ro);
     vec3 rt = normalize(cross(vec3(0.0, 1.0, 0.0), fw));
     vec3 up = cross(fw, rt);
@@ -110,7 +110,7 @@ void main()
     col += C2 * build * 0.25 * exp(-abs(uv.y) * 12.0) * smoothstep(1.2, 0.2, abs(uv.x));
 
     col *= 1.0 - 0.1 * calm;
-    col *= smoothstep(1.5, 0.45, length(uv * vec2(0.8, 1.0)));
+    col *= smoothstep(2.4, 0.6, length(uv * vec2(0.8, 1.0)));      // soft vignette: the frame stays full on a big screen
     col *= uIntensity * 1.35 * mix(0.6, 1.0, uActivity);
     fragColor = vec4(col, 1.0);
 }

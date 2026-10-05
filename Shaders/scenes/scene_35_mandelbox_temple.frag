@@ -99,7 +99,7 @@ void main()
     col += C2 * build * 0.3 * exp(-length(uv) * 5.0);
 
     col *= 1.0 - 0.1 * calm;
-    col *= smoothstep(1.5, 0.45, length(uv * vec2(0.8, 1.0)));
+    col *= smoothstep(2.4, 0.6, length(uv * vec2(0.8, 1.0)));      // soft vignette: the frame stays full on a big screen
     col *= uIntensity * 1.45 * mix(0.6, 1.0, uActivity);
     fragColor = vec4(col, 1.0);
 }

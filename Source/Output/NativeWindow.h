@@ -12,4 +12,12 @@ namespace dali::native
 {
 bool fillMonitorAt(void* nativeWindowHandle, int physicalX, int physicalY);
 bool isEscapeDown();
+bool clientSize(void* nativeWindowHandle, int& w, int& h);
+bool glSurfaceSize(void* nativeWindowHandle, int& w, int& h);   // first direct child (JUCE's GL surface)
+/** GL thread, context current: the true pixel size of the surface being drawn into (Windows). */
+bool currentDrawableSize(int& width, int& height);
+/** Stretch every child window (the OpenGL surface) over the parent's full client area. */
+void fillChildren(void* nativeWindowHandle);
+/** True when the window exactly covers the monitor that contains the physical point. */
+bool coversMonitorAt(void* nativeWindowHandle, int physicalX, int physicalY, int& monitorW, int& monitorH);
 }

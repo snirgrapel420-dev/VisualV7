@@ -321,6 +321,15 @@ void SettingsPanel::timerCallback()
     s << "Renderer: " << (renderer.isNotEmpty() ? renderer : juce::String("starting...")) << "\n"
       << (proc.isStandalone() ? "Standalone - with 'Audio Input', choose the device under Options > Audio/MIDI Settings."
                               : "Plug-in - listens to the track it is inserted on; audio passes through unchanged.");
+    {
+        const auto& t = proc.engineState.telemetry;
+        if (t.outWindowW.load() > 0)
+            s << "\nLive output: window " << t.outWindowW.load() << "x" << t.outWindowH.load()
+              << "  |  GL surface " << t.outSurfaceW.load() << "x" << t.outSurfaceH.load()
+              << "  |  render " << t.outRenderW.load() << "x" << t.outRenderH.load()
+              << ((t.outSurfaceW.load() < t.outWindowW.load() - 2 || t.outSurfaceH.load() < t.outWindowH.load() - 2)
+                      ? "   <- surface smaller than the window" : "   (full screen)") << "\n";
+    }
     info.setText(s, juce::dontSendNotification);
 }
 

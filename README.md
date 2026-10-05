@@ -15,6 +15,9 @@ C++17 · JUCE 8 · CMake · OpenGL 3.2 core / GLSL 150.
   Bloom מנורמל לרזולוציה, Sharpness, ורינדור 150%/200% (supersampling). סצנות חדשות: Mandelbulb Bloom, Fourth Dimension.
 * **v5.2:** 13 סצנות תלת-ממדיות + Image Reactor. חדשות: Mandelbox Temple, Crystal Sanctum, Menger Void, Quaternion Julia,
   Fractal Ocean, Dimension Gate.
+* **v6.4:** GO LIVE מסך מלא אמיתי (תיקון מדידתי של משטח ה-GL מול החלון + שורת אבחון ב-SETTINGS), וינייט רך וקומפוזיציה
+  קרובה יותר בסצנות של אובייקט מרכזי. ה-init של כל סצנה כולל עכשיו ניתוב אוטומציות לפי תפקידים בלשונית MOD
+  (קיק→אור, מידים→מבנה, באס איטי→מהירות, היי-האט→Bloom, סנר→Trip, בסליין→עוצמה, Chaos→משפחת צבע). מקור חדש: Bassline.
 * **v6.3:** Auto Pilot תוקן (ספר "תיבות" שקפצו בין שני מנועים → החליף סצנות מהר מדי; עכשיו זמן מוזיקלי משלו, ווריאציות משותפות).
   Undo/Redo (Ctrl+Z / Ctrl+Y) לכל פעולה הרסנית. Init ייחודי לכל סצנה שנטען בבחירתה (+ Reset Scene). כפתור CHAOS.
   מעבר "מעבר-ממדים": נפילה למערבולת → מנהרת אור → הגחה מקליידוסקופ.

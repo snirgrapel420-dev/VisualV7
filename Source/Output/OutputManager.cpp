@@ -25,7 +25,7 @@ public:
         startTimerHz(30);
     }
 
-    void resized() override { view.setBounds(getLocalBounds()); }
+    void resized() override { view.setBounds(getLocalBounds()); corrections = 0; }
     void paint(juce::Graphics& g) override { g.fillAll(juce::Colours::black); }
 
     // ESC pressed twice (within 0.8 s) ends the live output - also when the DAW has the focus.
@@ -59,8 +59,30 @@ private:
 
     void timerCallback() override
     {
-        // re-apply the monitor fit for the first second (Windows may rescale after a DPI change)
-        if (++ticks == 4 || ticks == 15 || ticks == 30) fillMonitor();
+        // keep the window on the WHOLE monitor all the time (a later DPI change or a JUCE re-layout used
+        // to shrink it and leave dead borders) and stretch the OpenGL surface over the whole window
+        if (++ticks % 15 == 4)
+            if (auto* peer = getPeer())
+            {
+                int mw = 0, mh = 0;
+                if (!native::coversMonitorAt(peer->getNativeHandle(), target.x, target.y, mw, mh)) fillMonitor();
+                native::fillChildren(peer->getNativeHandle());
+                // measure: does JUCE's GL surface really cover the window? If JUCE's scale factor disagrees
+                // with the monitor (mixed-DPI laptops), enlarge the view by the measured ratio so JUCE itself
+                // builds a full-size surface (instead of fighting its layout every frame)
+                int cw = 0, ch = 0, gw = 0, gh = 0;
+                if (native::clientSize(peer->getNativeHandle(), cw, ch))
+                {
+                    view.state().telemetry.outWindowW = cw; view.state().telemetry.outWindowH = ch;
+                    if (native::glSurfaceSize(peer->getNativeHandle(), gw, gh) && corrections < 4
+                        && (gw < cw - 2 || gh < ch - 2))
+                    {
+                        ++corrections;
+                        view.setBounds(0, 0, juce::roundToInt(view.getWidth() * float(cw) / float(gw)),
+                                             juce::roundToInt(view.getHeight() * float(ch) / float(gh)));
+                    }
+                }
+            }
 
         const bool esc = native::isEscapeDown();
         if (esc && !escWasDown) registerEscape();
@@ -78,7 +100,7 @@ private:
     juce::Point<int> target;
     double lastEscape = 0.0;
     bool escWasDown = true;                  // ignore an ESC that is still held from before
-    int ticks = 0;
+    int ticks = 0, corrections = 0;
 };
 
 class OutputManager::IdentifyWindow : public juce::Component

@@ -60,7 +60,7 @@ void main()
     float build = uState.y, peak = uState.z, chaos = uState.w, calm = uState.x;
 
     float orbit = uBassTime * (0.04 + 0.15 * uMacro.z) + uTime * 0.02;
-    float dist = 4.4 - 0.3 * uBassSlow + 0.4 * calm - 0.6 * build;
+    float dist = 3.5 - 0.3 * uBassSlow + 0.3 * calm - 0.5 * build;
     vec3 ro = dist * vec3(sin(orbit), 0.35 + 0.2 * sin(orbit * 0.6), cos(orbit));
     vec3 fw = normalize(-ro);
     vec3 rt = normalize(cross(vec3(0.0, 1.0, 0.0), fw));
@@ -101,7 +101,7 @@ void main()
     col += mix(C1, C2, 0.5) * glow * (0.3 + 0.8 * uMacro.y) * (0.4 + 0.8 * peak + 0.6 * uKick);
 
     col *= 1.0 - 0.1 * calm;
-    col *= smoothstep(1.5, 0.45, length(uv * vec2(0.8, 1.0)));
+    col *= smoothstep(2.4, 0.6, length(uv * vec2(0.8, 1.0)));      // soft vignette: the frame stays full on a big screen
     col *= uIntensity * 1.4 * mix(0.6, 1.0, uActivity);
     fragColor = vec4(col, 1.0);
 }

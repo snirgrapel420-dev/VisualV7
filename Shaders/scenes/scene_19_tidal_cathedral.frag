@@ -133,7 +133,7 @@ void main()
     float plank = step(0.992 - 0.006 * uHigh - 0.01 * chaos, hash12(floor(pg))) * smoothstep(0.22, 0.0, length(fract(pg) - 0.5));
     col += P3 * plank * (0.15 + 0.8 * uHigh + 0.5 * uHat);
 
-    col *= smoothstep(1.4, 0.4, length(uv * vec2(0.8, 1.0)));
+    col *= smoothstep(2.4, 0.6, length(uv * vec2(0.8, 1.0)));      // soft vignette: the frame stays full on a big screen
     col *= uIntensity * 1.3 * mix(0.6, 1.0, uActivity);
     fragColor = vec4(col, 1.0);
 }

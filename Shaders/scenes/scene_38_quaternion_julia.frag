@@ -59,7 +59,7 @@ void main()
     gC = vec4(-0.125, -0.256, 0.847, 0.0895) + (0.06 + 0.06 * uMacro.x) * cos(vec4(0.5, 3.9, 1.4, 1.1) + m * vec4(1.2, 1.7, 1.3, 2.5));
 
     float orbit = uBassTime * (0.04 + 0.15 * uMacro.z) + uTime * 0.02;
-    float dist = 3.4 - 0.25 * uSub + 0.3 * calm;
+    float dist = 2.75 - 0.25 * uSub + 0.25 * calm;
     vec3 ro = dist * vec3(sin(orbit), 0.3 * sin(orbit * 0.6), cos(orbit));
     vec3 fw = normalize(-ro);
     vec3 rt = normalize(cross(vec3(0.0, 1.0, 0.0), fw));
@@ -102,7 +102,7 @@ void main()
     col += mix(C1, C2, 0.5) * glow * (0.3 + 0.8 * uMacro.y) * (0.4 + 0.8 * peak + 0.7 * uKick);
 
     col *= 1.0 - 0.1 * calm;
-    col *= smoothstep(1.5, 0.45, length(uv * vec2(0.8, 1.0)));
+    col *= smoothstep(2.4, 0.6, length(uv * vec2(0.8, 1.0)));      // soft vignette: the frame stays full on a big screen
     col *= uIntensity * 1.4 * mix(0.6, 1.0, uActivity);
     col *= 0.48;                                   // exposure matched to the other scenes (consistency pass)
     fragColor = vec4(col, 1.0);

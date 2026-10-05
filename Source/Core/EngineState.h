@@ -73,6 +73,7 @@ struct Telemetry
 {
     std::atomic<float> previewFps { 0 }, outputFps { 0 }, frameMs { 0 };
     std::atomic<float> quality { 1.0f };            // adaptive quality of the main picture (0..1)
+    std::atomic<int> outWindowW { 0 }, outWindowH { 0 }, outSurfaceW { 0 }, outSurfaceH { 0 }, outRenderW { 0 }, outRenderH { 0 };
     std::atomic<float> bpm { 0 };
     std::atomic<int>   clockSource { 2 };            // MusicalClock::ActiveSource
     std::atomic<float> beatPulse { 0 };

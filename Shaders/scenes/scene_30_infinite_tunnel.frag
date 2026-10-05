@@ -136,7 +136,7 @@ void main()
     col += C2 * glowAcc * (0.2 + 0.8 * peak + 0.6 * uKick);
 
     col *= 1.0 - 0.1 * calm;
-    col *= smoothstep(1.5, 0.45, length(uv * vec2(0.8, 1.0)));
+    col *= smoothstep(2.4, 0.6, length(uv * vec2(0.8, 1.0)));      // soft vignette: the frame stays full on a big screen
     col *= uIntensity * 1.3 * mix(0.6, 1.0, uActivity);
     col *= 1.6;                                   // exposure matched to the other scenes (consistency pass)
     fragColor = vec4(col, 1.0);

@@ -55,7 +55,7 @@ void main()
     float build = uState.y, peak = uState.z, chaos = uState.w, calm = uState.x;
 
     float orbit = uBassTime * (0.04 + 0.12 * uMacro.z) + uTime * 0.02;
-    float dist = 5.2 - 0.6 * build + 0.3 * calm;
+    float dist = 4.3 - 0.5 * build + 0.3 * calm;
     vec3 ro = dist * normalize(vec3(sin(orbit), 0.55 + 0.4 * build, cos(orbit)));
     vec3 ta = vec3(0.0, 0.1 + 0.25 * build, 0.0);
     vec3 fw = normalize(ta - ro);
@@ -104,7 +104,7 @@ void main()
     col += C3 * step(0.994 - 0.005 * uHigh, hash12(floor(sg))) * smoothstep(0.25, 0.0, length(fract(sg) - 0.5)) * (0.2 + 0.7 * uHigh);
 
     col *= 1.0 - 0.1 * calm;
-    col *= smoothstep(1.5, 0.45, length(uv * vec2(0.8, 1.0)));
+    col *= smoothstep(2.4, 0.6, length(uv * vec2(0.8, 1.0)));      // soft vignette: the frame stays full on a big screen
     col *= uIntensity * 1.45 * mix(0.6, 1.0, uActivity);
     col *= 1.3;                                   // exposure matched to the other scenes (consistency pass)
     fragColor = vec4(col, 1.0);

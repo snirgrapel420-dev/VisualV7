@@ -109,7 +109,7 @@ void main()
     col += C3 * step(0.993 - 0.005 * uHigh, hash12(floor(sg))) * smoothstep(0.25, 0.0, length(fract(sg) - 0.5)) * (0.25 + 0.8 * uHigh);
 
     col *= 1.0 - 0.1 * calm;
-    col *= smoothstep(1.5, 0.45, length(uv * vec2(0.8, 1.0)));
+    col *= smoothstep(2.4, 0.6, length(uv * vec2(0.8, 1.0)));      // soft vignette: the frame stays full on a big screen
     col *= uIntensity * 1.45 * mix(0.6, 1.0, uActivity);
     fragColor = vec4(col, 1.0);
 }
