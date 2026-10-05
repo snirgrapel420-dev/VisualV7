@@ -1,0 +1,183 @@
+# =============================================================================
+#  DALI VISUAL — CI build
+#   • tests    : core unit tests (DSP / modulation / image) + GLSL shader harness (Linux, Mesa)
+#   • build    : VST3 + Standalone for Windows (x64) and macOS (Universal arm64 + x86_64)
+#   • release  : on a tag "v*" the zipped builds are attached to a GitHub Release
+#  Artifacts: Actions → the run → "Artifacts" at the bottom of the page.
+# =============================================================================
+name: Build
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUILD_TYPE: Release
+  JUCE_TAG: 8.0.4
+
+jobs:
+  # ---------------------------------------------------------------------------
+  tests:
+    name: Core tests + shader validation (Linux)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain + Mesa (software OpenGL)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake g++ libegl1 libegl-mesa0 libgl1 libgl1-mesa-dri
+
+      - name: Build & run core unit tests
+        run: |
+          cmake -S Tests -B build-tests -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-tests --parallel
+          ./build-tests/DaliVisualCoreTests
+
+      - name: Validate all shaders (compile, link, render)
+        run: |
+          g++ -O2 -std=c++17 Tools/ShaderHarness/shader_harness.cpp Source/Image/ImageDNA.cpp -ldl -o shader_harness
+          mkdir -p shader-out
+          # 256x256 RGBA test logo (ring + cross) so the image-template modes are exercised too
+          python3 - <<'PY'
+          import math
+          W = H = 256
+          px = bytearray()
+          for y in range(H):
+              for x in range(W):
+                  dx, dy = x - W / 2, y - H / 2
+                  r = math.hypot(dx, dy)
+                  on = (70 < r < 100) or (abs(dx) < 12 and r < 100) or (abs(dy) < 12 and r < 100)
+                  px += bytes((255, 60, 200, 255) if on else (0, 0, 0, 0))
+          open("logo.rgba", "wb").write(px)
+          PY
+          LIBGL_ALWAYS_SOFTWARE=1 EGL_PLATFORM=surfaceless ./shader_harness Shaders shader-out logo.rgba 256 256
+
+      - name: Upload shader renders
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shader-renders
+          path: shader-out
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------
+  build:
+    name: ${{ matrix.name }}
+    needs: tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-2022
+            artifact: DaliVisual-Windows-x64
+            cmake_args: -G "Visual Studio 17 2022" -A x64
+          - name: macOS Universal
+            os: macos-14
+            artifact: DaliVisual-macOS-Universal
+            cmake_args: -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache JUCE download
+        uses: actions/cache@v4
+        with:
+          path: .deps
+          key: juce-${{ env.JUCE_TAG }}-${{ runner.os }}
+
+      - name: Configure
+        shell: bash
+        run: >
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          -DFETCHCONTENT_BASE_DIR="${{ github.workspace }}/.deps"
+          ${{ matrix.cmake_args }}
+
+      - name: Build (VST3 + Standalone)
+        shell: bash
+        run: |
+          set -o pipefail
+          # Windows: MSBuild runs one project at a time, cl.exe /MP already uses every core
+          # (more parallelism exhausts the runner's memory and kills cl.exe silently).
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cmake --build build --config ${{ env.BUILD_TYPE }} -- -m:1 -v:minimal -clp:Summary 2>&1 | tee build.log
+          else
+            cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 3 2>&1 | tee build.log
+          fi
+
+      - name: Show build errors
+        if: failure()
+        shell: bash
+        run: |
+          echo "================ ERRORS ================"
+          grep -nE "error|Error|fatal|FAILED|exited with code|killed" build.log | grep -v "warning" | head -200 || true
+          echo "================ LAST 60 LINES ================"
+          tail -60 build.log || true
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ matrix.artifact }}
+          path: build.log
+          if-no-files-found: ignore
+
+      - name: Ad-hoc code sign (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          cd "build/DaliVisual_artefacts/${{ env.BUILD_TYPE }}"
+          codesign --force --deep --sign - "VST3/Dali Visual.vst3"
+          codesign --force --deep --sign - "Standalone/Dali Visual.app"
+
+      - name: Package
+        shell: bash
+        run: |
+          ART="build/DaliVisual_artefacts/${{ env.BUILD_TYPE }}"
+          mkdir -p "package/${{ matrix.artifact }}"
+          cp -R "$ART/VST3" "$ART/Standalone" "package/${{ matrix.artifact }}/"
+          cp README.md "package/${{ matrix.artifact }}/"
+          find "package/${{ matrix.artifact }}" -name "*.pdb" -delete || true
+          ls -R "package/${{ matrix.artifact }}" | head -50
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: package/${{ matrix.artifact }}
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  release:
+    name: GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: DaliVisual-*
+
+      - name: Zip builds
+        run: |
+          cd dist
+          for d in DaliVisual-*; do zip -qry "../$d-${GITHUB_REF_NAME}.zip" "$d"; done
+          ls -la ..
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: DaliVisual-*.zip
+          generate_release_notes: true
