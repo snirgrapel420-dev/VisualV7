@@ -74,7 +74,10 @@ public:
     juce::ChangeBroadcaster historyChanged;
 
     /** Message thread: loads the current scene's own init values (undoable). */
-    void applySceneInit();
+    void applySceneInit(bool undoable = true);
+
+    /** Message thread: everything back to the start (all parameters, modulation, effects, image); undoable. */
+    void resetEverything();
 
     // ---- audio source (standalone) ---------------------------------------------------------
     enum InputSource { AudioInput = 0, SystemAudio = 1 };

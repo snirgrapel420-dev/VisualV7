@@ -96,7 +96,8 @@ void main()
     c = (c - 0.5) * uContrast * (1.0 + 0.25 * build) + 0.5;
     // build vignette closes in; drop adds a short white flash
     vec2 p = vUV - 0.5;
-    c *= 1.0 - build * 0.55 * smoothstep(0.15, 0.75, length(p * vec2(uRes.x / uRes.y, 1.0)));
+    // (no closing vignette: it read as a lens filter with dead borders) - the build-up dims the WHOLE frame a little
+    c *= 1.0 - build * 0.18;
     c += vec3(0.12 * pow(drop, 4.0)) * (0.3 + l);
     c = aces(max(c, 0.0) * 1.1);
     c += (hash12(gl_FragCoord.xy + fract(uAbsTime) * 91.0) - 0.5) / 255.0;

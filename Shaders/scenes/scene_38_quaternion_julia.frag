@@ -80,7 +80,7 @@ void main()
         if (t > 6.0) break;
     }
 
-    vec3 col = mix(C0 * 0.35, C1 * 0.12, 0.5 + 0.5 * uv.y);
+    vec3 col = sceneBackdrop(rd, C0, C1, C2);                 // a living space around the 4D form
     if (hit)
     {
         float trap = gTrap;

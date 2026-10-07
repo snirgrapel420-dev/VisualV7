@@ -91,7 +91,7 @@ void main()
         if (t > 40.0) break;
     }
 
-    vec3 sky = mix(C0 * 0.35, C1 * 0.18, smoothstep(-0.2, 0.6, rd.y));
+    vec3 sky = sceneBackdrop(rd, C0, C1, C2);                 // a living space around the sanctum
     vec3 col = sky;
     if (hit)
     {

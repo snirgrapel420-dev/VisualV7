@@ -83,7 +83,7 @@ void main()
 
     // starfield
     vec2 sp = uv * 160.0;
-    vec3 col = C0 * 0.4 + C3 * step(0.997, hash12(floor(sp))) * 0.5;
+    vec3 col = sceneBackdrop(rd, C0, C1, C2);                 // a living space around the machine
     if (hit)
     {
         vec3 p = ro + rd * t;

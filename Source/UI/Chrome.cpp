@@ -1,4 +1,5 @@
 #include "Chrome.h"
+#include "../Core/AppPrefs.h"
 #include "../Output/OutputManager.h"
 
 namespace dali
@@ -265,7 +266,7 @@ SettingsPanel::SettingsPanel(DaliVisualProcessor& p) : proc(p), display(p), sour
     for (juce::Component* c : std::initializer_list<juce::Component*> {
              &outHeader, &audioHeader, &midiHeader, &infoHeader, &display, &source, &resolution, &displayLabel,
              &resolutionLabel, &sourceLabel, &sourceStatus, &midiLast, &info, &vsync, &previewWhileOutput,
-             &noteScenes, &programScenes, &identify, &openOutput, &clearMidi })
+             &noteScenes, &programScenes, &identify, &openOutput, &clearMidi, &resetAll, &restoreSession })
         addAndMakeVisible(c);
 
     displayLabel.setText("Output display", juce::dontSendNotification);
@@ -292,7 +293,14 @@ SettingsPanel::SettingsPanel(DaliVisualProcessor& p) : proc(p), display(p), sour
     identify.onClick = [this] { proc.output.identifyDisplays(); };
     openOutput.onClick = [this] { proc.output.toggle(); refresh(); };
     clearMidi.onClick = [this] { proc.midi.clearAll(); };
-    setSize(580, 640);
+    resetAll.setTooltip("All parameters, modulation, effects and the image back to the start, first scene at its init (Ctrl+Z undoes)");
+    resetAll.onClick = [this] { proc.resetEverything(); };
+    restoreSession.setTooltip("Off: every launch starts fresh (display, render, MIDI mappings and audio source are always kept). "
+                              "On: the last session's scene, modulation, effects and image come back too.");
+    restoreSession.setToggleState(AppPrefs::restoreSession(), juce::dontSendNotification);
+    restoreSession.onClick = [this] { AppPrefs::setRestoreSession(restoreSession.getToggleState()); };
+    restoreSession.setVisible(proc.isStandalone());
+    setSize(580, 680);
     refresh();
     startTimerHz(4);
 }
@@ -360,6 +368,9 @@ void SettingsPanel::resized()
     midiLast.setBounds(row(22));
     a = row(32);
     clearMidi.setBounds(a.removeFromLeft(230).reduced(0, 2));
+    a.removeFromLeft(10);
+    resetAll.setBounds(a.removeFromLeft(170).reduced(0, 2));
+    if (restoreSession.isVisible()) restoreSession.setBounds(row(26));
     r.removeFromTop(10);
 
     infoHeader.setBounds(row(24));

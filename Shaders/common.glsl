@@ -207,3 +207,18 @@ vec3 roleCamera(vec3 rd)
     float fov = 1.0 + 0.06 * uSub + 0.025 * uBassNote;
     return normalize(vec3(rd.xy * fov, rd.z));
 }
+
+// ---- a living backdrop for scenes built around one object: the frame is never an empty black void ----
+// a slow nebula in the scene's own colours + stars, by ray direction (no seams), moved by the music
+vec3 sceneBackdrop(vec3 rd, vec3 A, vec3 B, vec3 C)
+{
+    vec2 q = rd.xy / (1.0 + abs(rd.z)) * 2.2 + vec2(rd.z * 0.7, 0.0);
+    float n  = fbm(q * 1.4 + vec2(uMidTime * 0.012, uBassTime * 0.006), 5);
+    float n2 = fbm(q * 3.1 - vec2(uBassTime * 0.008, 0.0), 4);
+    vec3 neb = mix(A * 0.6 + B * 0.12, B * 0.75, smoothstep(0.3, 0.75, n));
+    neb = mix(neb, C * 0.8, smoothstep(0.55, 0.95, n * n2 * 1.7) * 0.55);
+    neb *= 0.55 + 0.35 * uEnergyMed + 0.25 * uState.z + 0.35 * uState.w;
+    vec2 sg = q * 70.0;
+    float st = step(0.994, hash12(floor(sg))) * smoothstep(0.32, 0.0, length(fract(sg) - 0.5));
+    return neb + C * st * (0.5 + 0.8 * uHigh);
+}

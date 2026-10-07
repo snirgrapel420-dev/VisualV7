@@ -63,7 +63,7 @@ void main()
     rd = roleCamera(rd);                       // sub / mids / bassline move the camera
 
     // space: a faint nebula and stars behind the form
-    vec3 col = C0 * (0.6 + 0.4 * fbm(rd.xy * 2.0 + rd.z, 3));
+    vec3 col = sceneBackdrop(rd, C0, C1, C2);                 // a living space around the object
     vec2 sg = rd.xy / (abs(rd.z) + 0.5) * 120.0;
     col += C3 * step(0.996, hash12(floor(sg))) * smoothstep(0.35, 0.0, length(fract(sg) - 0.5)) * 0.6;
 

@@ -74,7 +74,7 @@ void main()
         if (t > 20.0) break;
     }
 
-    vec3 col = mix(C0 * 0.3, C1 * 0.15, 0.5 + 0.5 * rd.y);
+    vec3 col = sceneBackdrop(rd, C0, C1, C2);                 // a living space around the temple
     if (hit)
     {
         float trap = gTrap;
