@@ -340,6 +340,9 @@ public:
         bipolar.setToggleState(s.bipolar, juce::dontSendNotification);
         invert.setToggleState(s.invert, juce::dontSendNotification);
         const bool active = s.source > 0 && s.target >= 0;
+        number.setText((s.fromScene && active ? "S" : "") + juce::String(index + 1).paddedLeft('0', 2), juce::dontSendNotification);
+        number.setColour(juce::Label::textColourId, s.fromScene && active ? colours::accent : colours::textDim);
+        number.setTooltip(s.fromScene && active ? "Scene route: replaced when the scene changes. Edit it to keep it." : "Your route: kept when the scene changes.");
         for (juce::Component* c : std::initializer_list<juce::Component*> { &amount, &minS, &maxS, &smoothS, &attackS, &releaseS, &curveS, &sensS, &bipolar, &invert })
             c->setAlpha(active ? 1.0f : 0.45f);
     }
@@ -356,6 +359,7 @@ public:
         s.smoothingMs = float(smoothS.getValue()); s.attackMs = float(attackS.getValue()); s.releaseMs = float(releaseS.getValue());
         s.curve = float(curveS.getValue()); s.sensitivity = float(sensS.getValue());
         s.bipolar = bipolar.getToggleState(); s.invert = invert.getToggleState();
+        s.fromScene = false;                                 // edited by hand: it is yours now, scene changes keep it
         proc.matrix.setSlot(index, s);
     }
 

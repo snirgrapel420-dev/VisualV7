@@ -13,6 +13,7 @@ juce::ValueTree ModulationMatrix::toValueTree() const
         juce::ValueTree c("Slot");
         c.setProperty("index", i, nullptr);
         c.setProperty("enabled", m.enabled, nullptr);
+        c.setProperty("fromScene", m.fromScene, nullptr);
         c.setProperty("source", modSourceName(ModSource(m.source)), nullptr);
         c.setProperty("target", ModulationTarget { m.target }.paramId(), nullptr);
         c.setProperty("amount", m.amount, nullptr);
@@ -43,6 +44,7 @@ void ModulationMatrix::fromValueTree(const juce::ValueTree& v)
             if (i < 0 || i >= kMaxModSlots) continue;
             ModSlot m;
             m.enabled     = c.getProperty("enabled", true);
+            m.fromScene   = c.getProperty("fromScene", false);
             m.source      = juce::jmax(0, names.indexOf(c.getProperty("source").toString()));
             m.target      = ModulationTarget::fromParamId(c.getProperty("target").toString());
             m.amount      = c.getProperty("amount", 0.5f);

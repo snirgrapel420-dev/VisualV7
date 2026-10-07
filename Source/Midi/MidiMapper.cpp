@@ -97,7 +97,7 @@ juce::String MidiMapper::describeMapping(const juce::String& id) const
 juce::ValueTree MidiMapper::toValueTree() const
 {
     juce::ValueTree v(treeId);
-    v.setProperty("noteScenes", noteSceneSwitching.load(), nullptr);
+    v.setProperty("noteScenesV2", noteSceneSwitching.load(), nullptr);   // (v1 saves had it on by default)
     v.setProperty("programScenes", programChangeScenes.load(), nullptr);
     for (auto& [k, id] : ccMap)
     {
@@ -114,7 +114,7 @@ void MidiMapper::fromValueTree(const juce::ValueTree& v)
 {
     if (!v.hasType(treeId)) return;
     ccMap.clear();
-    noteSceneSwitching = (bool) v.getProperty("noteScenes", true);
+    noteSceneSwitching = (bool) v.getProperty("noteScenesV2", false);
     programChangeScenes = (bool) v.getProperty("programScenes", true);
     for (auto m : v)
     {

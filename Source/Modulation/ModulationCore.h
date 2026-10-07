@@ -56,6 +56,7 @@ struct ModSlot
     bool  bipolar     = false;    // polarity: false = 0..1, true = -1..1
     bool  invert      = false;
     float sensitivity = 1.0f;     // 0..4
+    bool  fromScene   = false;    // loaded by the scene init: replaced on the next scene change (editing it makes it yours)
 
     bool isActive() const noexcept { return enabled && source > 0 && target >= 0 && amount != 0.0f; }
 };

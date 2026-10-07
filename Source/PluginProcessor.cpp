@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "Core/AppPrefs.h"
 
 DaliVisualProcessor::DaliVisualProcessor()
     : AudioProcessor(BusesProperties()
@@ -111,9 +112,9 @@ void DaliVisualProcessor::handleAsyncUpdate()
     applySceneInit();
 }
 
-void DaliVisualProcessor::applySceneInit()
+void DaliVisualProcessor::applySceneInit(bool undoable)
 {
-    pushUndo();
+    if (undoable) pushUndo();
     const juce::ScopedValueSetter<int> guard(restoring, restoring + 1);
     const int scene = juce::roundToInt(apvts.getRawParameterValue(dali::params::id::scene)->load());
     const auto& in = dali::sceneInit(scene);
@@ -178,19 +179,46 @@ void DaliVisualProcessor::applySceneInit()
         { MS::Bassline,   "intensity",        k[5],   0.0f,  110.0f },
         { MS::StateChaos, chaosT.toRawUTF8(), k[6], 600.0f, 2500.0f },
     };
+    // only the previous scene's routes are replaced: routes the user built (or edited) stay untouched
     auto slots = matrix.getSlots();
-    for (auto& sl : slots) { sl = dali::ModSlot {}; sl.source = 0; sl.target = -1; }
-    size_t n = 0;
+    for (auto& sl : slots)
+        if (sl.fromScene) { sl = dali::ModSlot {}; sl.source = 0; sl.target = -1; }
+    auto isFree = [](const dali::ModSlot& sl) { return sl.source == 0 || sl.target < 0; };
+    size_t next = 0;
     for (auto& r : routes)
     {
-        if (r.amount <= 0.0f || n >= slots.size()) continue;
+        if (r.amount <= 0.0f) continue;
         const int t = dali::ModulationTarget::fromParamId(r.target);
         if (t < 0) continue;
-        auto& sl = slots[n++];
+        while (next < slots.size() && !isFree(slots[next])) ++next;
+        if (next >= slots.size()) break;                                // the user's routes fill the matrix
+        auto& sl = slots[next++];
+        sl = dali::ModSlot {};
         sl.enabled = true; sl.source = int(r.src); sl.target = t; sl.amount = r.amount;
         sl.attackMs = r.attackMs; sl.releaseMs = r.releaseMs; sl.smoothingMs = 20.0f;
+        sl.fromScene = true;
     }
     matrix.setAll(slots);
+}
+
+void DaliVisualProcessor::resetEverything()
+{
+    pushUndo();
+    {
+        const juce::ScopedValueSetter<int> guard(restoring, restoring + 1);
+        for (auto& d : dali::params::all())
+            if (auto* prm = apvts.getParameter(d.id))
+            {
+                prm->beginChangeGesture();
+                prm->setValueNotifyingHost(prm->getDefaultValue());
+                prm->endChangeGesture();
+            }
+        matrix.clear();
+        effectChain.reset();
+        image.clear();
+        lastSceneSeen = juce::roundToInt(apvts.getRawParameterValue(dali::params::id::scene)->load());
+    }
+    applySceneInit(false);
 }
 
 juce::String DaliVisualProcessor::getInputSourceStatus() const
@@ -322,6 +350,7 @@ void DaliVisualProcessor::applyState(const juce::ValueTree& st)
         }
 
     matrix.fromValueTree(st.getChildWithName(dali::ModulationMatrix::treeId));
+    lastSceneSeen = juce::roundToInt(apvts.getRawParameterValue(dali::params::id::scene)->load());   // restored, not chosen
     effectChain.fromValueTree(st.getChildWithName(dali::EffectChain::treeId));
 
     const auto o = st.getChildWithName("Output");
@@ -358,8 +387,33 @@ void DaliVisualProcessor::setStateInformation(const void* data, int sizeInBytes)
     if (auto xml = getXmlFromBinary(data, sizeInBytes))
     {
         auto tree = juce::ValueTree::fromXml(*xml);
-        if (juce::MessageManager::getInstance()->isThisTheMessageThread()) applyState(tree);
-        else juce::MessageManager::callAsync([this, tree] { applyState(tree); });
+        // STANDALONE: by default every launch starts fresh (only the setup comes back); the creative state
+        // of the last session returns only when "Restore last session on launch" is on in SETTINGS
+        bool fresh = false;
+        if (isStandalone() && !dali::AppPrefs::restoreSession() && tree.hasType(stateId))
+        {
+            juce::ValueTree setup(stateId);
+            setup.copyPropertiesFrom(tree, nullptr);
+            for (const juce::Identifier keep : { juce::Identifier("Output"), dali::MidiMapper::treeId })
+            {
+                const auto c = tree.getChildWithName(keep);
+                if (c.isValid()) setup.appendChild(c.createCopy(), nullptr);
+            }
+            tree = setup;
+            fresh = true;
+        }
+        auto apply = [this, tree, fresh]
+        {
+            applyState(tree);
+            if (fresh)
+            {
+                matrix.clear();
+                effectChain.reset();
+                applySceneInit(false);                // the first scene at its best
+            }
+        };
+        if (juce::MessageManager::getInstance()->isThisTheMessageThread()) apply();
+        else juce::MessageManager::callAsync(apply);
     }
 }
 

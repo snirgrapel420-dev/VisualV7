@@ -98,10 +98,11 @@ private:
     juce::Label displayLabel, resolutionLabel, sourceLabel, sourceStatus, midiLast, info;
     juce::ToggleButton vsync { "V-Sync (lock to the display refresh rate)" },
                        previewWhileOutput { "Keep the preview running while live" },
-                       noteScenes { "Notes C1-G1 select scenes 1-8" },
+                       noteScenes { "Notes C1-G2 select scenes 1-20" },
                        programScenes { "Program Change selects scenes" };
     juce::TextButton identify { "Identify Displays" }, openOutput { "GO LIVE" },
-                     clearMidi { "Clear all MIDI mappings" };
+                     clearMidi { "Clear all MIDI mappings" }, resetAll { "Reset Everything" };
+    juce::ToggleButton restoreSession { "Restore the last session on launch (standalone)" };
 };
 
 class SettingsWindow : public juce::DocumentWindow

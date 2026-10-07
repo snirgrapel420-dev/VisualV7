@@ -31,7 +31,7 @@ public:
     void clearAll();
     juce::String describeMapping(const juce::String& paramId) const;    // e.g. "CC 21 / Ch 1", or ""
 
-    std::atomic<bool> noteSceneSwitching { true };
+    std::atomic<bool> noteSceneSwitching { false };   // off: a keyboard / DAW notes must not switch scenes by surprise
     std::atomic<bool> programChangeScenes { true };
 
     juce::ValueTree toValueTree() const;
