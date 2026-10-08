@@ -1,7 +1,7 @@
 # =============================================================================
 #  DALI VISUAL — CI build
 #   • tests    : core unit tests (DSP / modulation / image) + GLSL shader harness (Linux, Mesa)
-#   • build    : VST3 + Standalone for Windows (x64) and macOS (Universal arm64 + x86_64)
+#   • build    : VST3 + Standalone for Windows (x64); VST3 + AU + Standalone for macOS (Universal arm64 + x86_64)
 #   • release  : on a tag "v*" the zipped builds are attached to a GitHub Release
 #  Artifacts: Actions → the run → "Artifacts" at the bottom of the page.
 # =============================================================================
@@ -103,7 +103,7 @@ jobs:
           -DFETCHCONTENT_BASE_DIR="${{ github.workspace }}/.deps"
           ${{ matrix.cmake_args }}
 
-      - name: Build (VST3 + Standalone)
+      - name: Build (VST3 + AU + Standalone)
         shell: bash
         run: |
           set -o pipefail
@@ -139,6 +139,7 @@ jobs:
           cd "build/DaliVisual_artefacts/${{ env.BUILD_TYPE }}"
           codesign --force --deep --sign - "VST3/Dali Visual.vst3"
           codesign --force --deep --sign - "Standalone/Dali Visual.app"
+          codesign --force --deep --sign - "AU/Dali Visual.component"
 
       - name: Package
         shell: bash
@@ -146,6 +147,7 @@ jobs:
           ART="build/DaliVisual_artefacts/${{ env.BUILD_TYPE }}"
           mkdir -p "package/${{ matrix.artifact }}"
           cp -R "$ART/VST3" "$ART/Standalone" "package/${{ matrix.artifact }}/"
+          if [ -d "$ART/AU" ]; then cp -R "$ART/AU" "package/${{ matrix.artifact }}/"; fi
           cp README.md "package/${{ matrix.artifact }}/"
           find "package/${{ matrix.artifact }}" -name "*.pdb" -delete || true
           ls -R "package/${{ matrix.artifact }}" | head -50
