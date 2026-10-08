@@ -22,6 +22,7 @@
 #include "ColorSystem.h"
 #include "VisualEffect.h"
 #include "VisualScene.h"
+#include "RecordCapture.h"
 #include <array>
 #include <memory>
 #include <vector>
@@ -89,6 +90,7 @@ private:
     Shader templateLayer, templateComposite, outputShader, crossfade;
     PingPong templateHistory;
     RenderTarget composite, fadeTarget, fxA, fxB, finalTarget;
+    RecordCapture recordCapture;                     // video recording (this engine publishes the output)
     unsigned int dnaTex = 0, colorTex = 0, flowTex = 0, spectrumTex = 0;
     std::array<std::array<float, 3>, 4> imgPalette {};
     std::array<float, 256> spectrumData {};              // 128 x 2 (spectrum row, waveform row)

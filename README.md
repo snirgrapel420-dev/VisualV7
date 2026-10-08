@@ -1,6 +1,6 @@
 # DALI VISUAL 6 — by DALI AUDIO
 
-Audio-reactive generative visual instrument. **VST3 + Standalone**, one shared engine.
+Audio-reactive generative visual instrument. **VST3 + AU (macOS) + Standalone**, one shared engine.
 C++17 · JUCE 8 · CMake · OpenGL 3.2 core / GLSL 150.
 
 ---
@@ -15,6 +15,13 @@ C++17 · JUCE 8 · CMake · OpenGL 3.2 core / GLSL 150.
   Bloom מנורמל לרזולוציה, Sharpness, ורינדור 150%/200% (supersampling). סצנות חדשות: Mandelbulb Bloom, Fourth Dimension.
 * **v5.2:** 13 סצנות תלת-ממדיות + Image Reactor. חדשות: Mandelbox Temple, Crystal Sanctum, Menger Void, Quaternion Julia,
   Fractal Ocean, Dimension Gate.
+* **v6.7:** **הקלטת וידאו (REC)** – כפתור ● REC בסרגל העליון מקליט את הוויזואל יחד עם הסאונד שהוא מגיב אליו לקובץ ‎.mp4
+  (H.264 + AAC, בהאצת חומרה: Media Foundation ב-Windows, AVFoundation ב-Mac). הפורמט (כמו על המסך / 16:9 / 9:16 לרילס / 1:1),
+  הרזולוציה (720p / 1080p / 4K), 30/60 fps והתיקייה – ב-SETTINGS → Recording. הפריים מרונדר ברזולוציית ההקלטה עצמה (לא צילום מסך);
+  בפורמט קבוע התצוגה המקדימה מראה בדיוק את מה שמוקלט. ב-VST3/AU מוקלט סאונד הטראק; ב-Standalone – מה שנבחר ב-Audio Source.
+  **תוקן:** ב-VST3 בחירת מסך יציאה תמיד נשארה על המסך הראשי (מיקום לפי אינדקס מסך פיזי, חלון Per-Monitor DPI – חד ומלא בכל DAW).
+  **תוקן (Mac):** אין סיגנל ב-Standalone – JUCE משתיק את כניסת האודיו כברירת מחדל; עכשיו היא נפתחת אוטומטית (הפלט שלנו שקט, אין פידבק).
+  **חדש:** פורמט AU ל-Mac (Logic Pro לא טוען VST3).
 * **v6.6:** אוטומציות שבנית כבר לא מתאפסות: מעבר סצנה מחליף רק את ה-routes של הסצנה (מסומנים S בלשונית MOD), שלך נשארים;
   עריכה של route של סצנה הופכת אותו לשלך. תוקן: שחזור מצב (הפעלה / טעינת פרויקט) כבר לא טוען init על המצב המשוחזר.
   בחירת סצנות בתווי MIDI כבויה כברירת מחדל (Program Change עדיין פעיל).
@@ -84,8 +91,12 @@ C++17 · JUCE 8 · CMake · OpenGL 3.2 core / GLSL 150.
 3. התוצרים:
    `build/DaliVisual_artefacts/Release/VST3/Dali Visual.vst3`
    `build/DaliVisual_artefacts/Release/Standalone/Dali Visual(.exe/.app)`
+   `build/DaliVisual_artefacts/Release/AU/Dali Visual.component` (Mac → `~/Library/Audio/Plug-Ins/Components`)
 4. **Standalone בהפעלה ראשונה:** Options → Audio/MIDI Settings → בחר כניסת אודיו.
-   אם מופיעה הודעת "Audio input is muted" – לחץ Unmute. (הפלט של ה-Standalone שקט תמיד – אין פידבק.)
+   (מ-v6.7 הכניסה נפתחת אוטומטית; הפלט של ה-Standalone שקט תמיד – אין פידבק.)
+   **Mac:** כדי שה-Standalone ישמע את מה שהמחשב מנגן (Spotify / DAW) – התקן BlackHole 2ch, צור Multi-Output Device
+   (רמקולים + BlackHole) ב-Audio MIDI Setup, ובחר BlackHole כ-Input ב-Options → Audio/MIDI Settings.
+   ב-Logic Pro השתמש ב-**AU** (Audio FX → Audio Units → Dali Audio → Dali Visual).
 5. **אם יש שגיאות קומפילציה** – שלח לי את הפלט המלא של `cmake --build` ואתקן.
 
 ---
@@ -256,13 +267,19 @@ Verified in the development environment:
 * **All 33 shaders** compile, link and render on a real OpenGL 3.2 core driver (Mesa), assembled exactly
   as the plug-in assembles them — `Tools/ShaderHarness` (renders contact sheets of every scene, effect,
   template mode and palette; checks for NaN / black / blown-out output).
-* **DSP / modulation / image core** — `Tests/CoreTests.cpp`, 90 checks (v4: musical state on a full track structure, image flow field; v3: spectrum band accuracy, waveform; v2: kick 25/25, snare 25/25, hat 100/100, 0 false snares, one drop at the right moment): BPM detection at 100/128/140/145/
+* **Video recorder timing (v6.7)** — the writer thread with a mock encoder: constant frame rate with no missing
+  frame indices under render jitter and a GPU hitch, 30 fps from a 60 Hz render, 60 fps from 144 Hz and 50 Hz renders,
+  continuous audio across a 1 s audio dropout (silence written on the wall clock), 44.1 / 48 kHz pass-through and
+  96 / 22.05 kHz resampled to 48 kHz (level preserved), audio and video lengths equal at stop.
+* **DSP / modulation / image core** — `Tests/CoreTests.cpp`, 93 checks (v4: musical state on a full track structure, image flow field; v3: spectrum band accuracy, waveform; v2: kick 25/25, snare 25/25, hat 100/100, 0 false snares, one drop at the right moment): BPM detection at 100/128/140/145/
   150/174 BPM within ±0.5 BPM, beat-phase error ≤ 0.063 beat, level-independent AGC, stereo metrics,
   modulation curves/attack/release/polarity, image DNA on a 4000×3000 image in ~180 ms.
 
 Not verified (no JUCE / compiler for the plug-in target available there):
 * the v2 JUCE-layer changes (UI, WASAPI loopback) are compiled by the GitHub CI, not here;
-* VST3 validation, DAW testing, multi-monitor fullscreen on Windows/macOS, frame-rate on real GPUs.
+* VST3 validation, DAW testing, multi-monitor fullscreen on Windows/macOS, frame-rate on real GPUs;
+* the platform video encoders (Media Foundation / AVFoundation) and the GL read-back of the recorder: syntax-checked
+  against the Windows SDK headers (mingw-w64) and JUCE 8.0.4, compiled for real only by the CI.
 
 Expect a few compile errors on the first build; send the build log and they will be fixed.
 

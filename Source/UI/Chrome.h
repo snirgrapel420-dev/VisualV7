@@ -47,9 +47,11 @@ public:
     void setPanelVisible(bool v) { panelBtn.setToggleState(v, juce::dontSendNotification); }
 
 private:
-    void changeListenerCallback(juce::ChangeBroadcaster*) override { updateLiveButton(); }
-    void timerCallback() override { updateLiveButton(); }
+    void changeListenerCallback(juce::ChangeBroadcaster* broadcaster) override;
+    void timerCallback() override { updateLiveButton(); updateRecButton(); }
     void updateLiveButton();
+    void updateRecButton();
+    void toggleRecording();
 
     DaliVisualProcessor& proc;
     ParamCombo scene;
@@ -58,7 +60,7 @@ private:
     juce::TextButton identify { "ID" },
                      live { "GO LIVE" }, panelBtn { "PANEL" }, settings { "SETTINGS" },
                      undoBtn { juce::String::fromUTF8("\xe2\x86\xb6") }, redoBtn { juce::String::fromUTF8("\xe2\x86\xb7") },
-                     chaos { "CHAOS" };
+                     chaos { "CHAOS" }, rec { "REC" };
     std::unique_ptr<juce::ButtonParameterAttachment> chaosAttachment;
     struct Caption { juce::String text; juce::Rectangle<int> area; };
     juce::Array<Caption> captions;
@@ -103,6 +105,14 @@ private:
     juce::TextButton identify { "Identify Displays" }, openOutput { "GO LIVE" },
                      clearMidi { "Clear all MIDI mappings" }, resetAll { "Reset Everything" };
     juce::ToggleButton restoreSession { "Restore the last session on launch (standalone)" };
+
+    // recording
+    SectionLabel recHeader { "Recording (REC: video + audio)" };
+    juce::ComboBox recFormat, recQuality, recFps;
+    juce::Label recLabel, recFolderLabel, recFolder;
+    juce::TextButton recChoose { "Choose..." }, recOpen { "Open" };
+    std::unique_ptr<juce::FileChooser> chooser;
+    void saveRecordingSettings();
 };
 
 class SettingsWindow : public juce::DocumentWindow

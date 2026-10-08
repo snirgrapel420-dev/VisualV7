@@ -7,8 +7,8 @@ namespace dali
 class OutputManager::OutputWindow : public juce::Component, private juce::Timer
 {
 public:
-    OutputWindow(EngineState& s, const juce::Rectangle<int>& area, juce::Point<int> physicalCentre, std::function<void()> onClose)
-        : view(s, RenderEngine::Role::Output), closeCallback(std::move(onClose)), target(physicalCentre)
+    OutputWindow(EngineState& s, const juce::Rectangle<int>& area, int displayIndex, std::function<void()> onClose)
+        : view(s, RenderEngine::Role::Output), closeCallback(std::move(onClose)), monitorIndex(displayIndex)
     {
         setOpaque(true);
         addAndMakeVisible(view);
@@ -16,7 +16,13 @@ public:
         setMouseCursor(juce::MouseCursor::NoCursor);
         setWantsKeyboardFocus(true);
         setBounds(area);
-        addToDesktop(0);                     // no title bar, no border
+        {
+            // The window (and the OpenGL surface JUCE creates inside it) is per-monitor DPI aware even
+            // inside a DAW whose process is not: sharp full-resolution output, and real monitor
+            // coordinates, so a second display is actually reached (VST3 used to stay on the main one).
+            native::ScopedPerMonitorDpi dpiScope;
+            addToDesktop(0);                 // no title bar, no border
+        }
         setAlwaysOnTop(true);
         setVisible(true);
         fillMonitor();
@@ -47,7 +53,7 @@ private:
     {
         // exact physical monitor bounds (fixes a shrunken window on a display with different scaling)
         if (auto* peer = getPeer())
-            native::fillMonitorAt(peer->getNativeHandle(), target.x, target.y);
+            native::fillMonitorIndex(peer->getNativeHandle(), monitorIndex);
     }
 
     void registerEscape()
@@ -65,7 +71,7 @@ private:
             if (auto* peer = getPeer())
             {
                 int mw = 0, mh = 0;
-                if (!native::coversMonitorAt(peer->getNativeHandle(), target.x, target.y, mw, mh)) fillMonitor();
+                if (!native::coversMonitorIndex(peer->getNativeHandle(), monitorIndex, mw, mh)) fillMonitor();
                 native::fillChildren(peer->getNativeHandle());
                 // measure: does JUCE's GL surface really cover the window? If JUCE's scale factor disagrees
                 // with the monitor (mixed-DPI laptops), enlarge the view by the measured ratio so JUCE itself
@@ -97,7 +103,7 @@ private:
 
     VisualView view;
     std::function<void()> closeCallback;
-    juce::Point<int> target;
+    int monitorIndex = 0;
     double lastEscape = 0.0;
     bool escWasDown = true;                  // ignore an ESC that is still held from before
     int ticks = 0, corrections = 0;
@@ -180,8 +186,7 @@ void OutputManager::open(int displayIndex)
 
     window.reset();
     const auto& d = displays.getReference(displayIndex);
-    const auto physicalCentre = juce::Desktop::getInstance().getDisplays().logicalToPhysical(d.area.getCentre());
-    window = std::make_unique<OutputWindow>(state, d.area, physicalCentre, [this] { close(); });
+    window = std::make_unique<OutputWindow>(state, d.area, displayIndex, [this] { close(); });
     state.telemetry.outputActive = true;
     sendChangeMessage();
 }

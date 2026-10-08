@@ -21,6 +21,7 @@
 #include "Image/TemplateGenerator.h"
 #include "Midi/MidiMapper.h"
 #include "Output/OutputManager.h"
+#include "Output/VideoRecorder.h"
 
 class DaliVisualProcessor : public juce::AudioProcessor,
                             private juce::AudioProcessorValueTreeState::Listener,
@@ -99,6 +100,7 @@ public:
     dali::MidiMapper        midi;
     dali::OutputManager     output;
     dali::TemplateGenerator templates;
+    dali::VideoRecorder     recorder;               // REC: the visuals + the audio they react to -> .mp4
 
     static inline const juce::Identifier stateId { "DaliVisualState" };
 

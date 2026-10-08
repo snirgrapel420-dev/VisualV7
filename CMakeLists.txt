@@ -8,7 +8,7 @@
 #    3. FetchContent download of JUCE 8.0.4
 # =============================================================================
 cmake_minimum_required(VERSION 3.22)
-project(DaliVisual VERSION 6.6.0 LANGUAGES C CXX)
+project(DaliVisual VERSION 6.7.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -38,7 +38,7 @@ juce_add_plugin(DaliVisual
     PRODUCT_NAME                "Dali Visual"
     PLUGIN_MANUFACTURER_CODE    Dali
     PLUGIN_CODE                 DvIs
-    FORMATS                     VST3 Standalone
+    FORMATS                     VST3 AU Standalone
     IS_SYNTH                    FALSE
     NEEDS_MIDI_INPUT            TRUE
     NEEDS_MIDI_OUTPUT           FALSE
@@ -83,6 +83,10 @@ target_sources(DaliVisual PRIVATE
     Source/Render/RenderEngine.cpp
     Source/Output/OutputManager.cpp
     Source/Output/NativeWindow.cpp
+    Source/Output/VideoRecorder.cpp
+    Source/Output/VideoEncoderWin.cpp
+    Source/Render/RecordCapture.cpp
+    Source/Core/StandaloneSupport.cpp
     Source/Midi/MidiMapper.cpp
     Source/UI/DaliLookAndFeel.cpp
     Source/UI/ParamControls.cpp
@@ -102,7 +106,14 @@ if(MSVC)
     target_compile_options(DaliVisual PRIVATE /utf-8 /bigobj)
 endif()
 if(WIN32)
-    target_link_libraries(DaliVisual PRIVATE ole32)      # WASAPI loopback (system audio)
+    # ole32: WASAPI loopback (system audio) · Media Foundation: the video recorder (H.264 + AAC)
+    target_link_libraries(DaliVisual PRIVATE ole32 mfplat mfreadwrite mfuuid)
+endif()
+if(APPLE)
+    # the video recorder: AVAssetWriter (H.264 via VideoToolbox + AAC)
+    target_sources(DaliVisual PRIVATE Source/Output/VideoEncoderMac.mm)
+    set_source_files_properties(Source/Output/VideoEncoderMac.mm PROPERTIES COMPILE_FLAGS "-fobjc-arc")
+    target_link_libraries(DaliVisual PRIVATE "-framework AVFoundation" "-framework CoreMedia" "-framework CoreVideo")
 endif()
 
 target_link_libraries(DaliVisual

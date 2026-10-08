@@ -25,6 +25,7 @@
 namespace dali
 {
 class FrameSink;
+class VideoRecorder;
 
 struct HostTimingShared
 {
@@ -124,5 +125,8 @@ struct EngineState
     // Frame sinks (Spout / Syphon / NDI adapters) — registered on the message thread.
     juce::SpinLock sinkLock;
     juce::Array<FrameSink*> sinks;
+
+    // Video recorder (owned by the processor, set once before any renderer exists).
+    VideoRecorder* recorder = nullptr;
 };
 } // namespace dali

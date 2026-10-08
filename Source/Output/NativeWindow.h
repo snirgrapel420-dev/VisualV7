@@ -20,4 +20,24 @@ bool currentDrawableSize(int& width, int& height);
 void fillChildren(void* nativeWindowHandle);
 /** True when the window exactly covers the monitor that contains the physical point. */
 bool coversMonitorAt(void* nativeWindowHandle, int physicalX, int physicalY, int& monitorW, int& monitorH);
+
+/** While alive, the calling thread is Per-Monitor-DPI-aware (v2) - real physical pixels on every monitor.
+    Needed inside a plug-in: the host decides the process DPI mode and JUCE does not change it, so the
+    monitor geometry JUCE reports there is not usable for placing a window on a second display. */
+class ScopedPerMonitorDpi
+{
+public:
+    ScopedPerMonitorDpi();
+    ~ScopedPerMonitorDpi();
+private:
+    [[maybe_unused]] void* previous = nullptr;
+    ScopedPerMonitorDpi(const ScopedPerMonitorDpi&) = delete;
+    ScopedPerMonitorDpi& operator=(const ScopedPerMonitorDpi&) = delete;
+};
+
+/** Monitors in the same order as juce::Desktop::getDisplays() (OS order, the primary swapped to index 0). */
+int monitorCount();
+/** Covers monitor #index (physical bounds, top-most). Works the same in a plug-in and in the standalone. */
+bool fillMonitorIndex(void* nativeWindowHandle, int index);
+bool coversMonitorIndex(void* nativeWindowHandle, int index, int& monitorW, int& monitorH);
 }

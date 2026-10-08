@@ -18,6 +18,14 @@
 
 namespace dali
 {
+/** Receives exactly the audio the analyzer listens to (the active source), on the producing thread.
+    Must be wait-free (used by the video recorder). */
+struct AudioTap
+{
+    virtual ~AudioTap() = default;
+    virtual void tapAudio(const float* left, const float* right, int numSamples, double sampleRate) noexcept = 0;
+};
+
 class AudioAnalyzer : private juce::Thread
 {
 public:
@@ -47,6 +55,9 @@ public:
     /** Any non-audio thread. */
     Snapshot snapshot() const;
 
+    /** Message thread. The tap must stay alive until it is removed (nullptr). */
+    void setTap(AudioTap* t) noexcept { tap.store(t); }
+
     static double now() noexcept { return juce::Time::getMillisecondCounterHiRes() * 0.001; }
 
 private:
@@ -59,6 +70,7 @@ private:
     std::atomic<double> hostRate { 48000.0 }, extRate { 48000.0 };
     std::atomic<int> rateVersion { 0 };
     std::atomic<int> source { int(Source::Host) };
+    std::atomic<AudioTap*> tap { nullptr };
     std::atomic<float> sensitivity { 1.0f };
 
     mutable juce::SpinLock lock;

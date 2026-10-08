@@ -37,8 +37,19 @@ void AudioAnalyzer::pushInto(SpscRing<Frame>& ring, const float* left, const flo
     }
 }
 
-void AudioAnalyzer::push(const float* l, const float* r, int n) noexcept         { pushInto(hostRing, l, r, n); }
-void AudioAnalyzer::pushExternal(const float* l, const float* r, int n) noexcept { pushInto(extRing, l, r, n); }
+void AudioAnalyzer::push(const float* l, const float* r, int n) noexcept
+{
+    pushInto(hostRing, l, r, n);
+    if (source.load(std::memory_order_relaxed) == int(Source::Host))
+        if (auto* t = tap.load(std::memory_order_acquire)) t->tapAudio(l, r, n, hostRate.load(std::memory_order_relaxed));
+}
+
+void AudioAnalyzer::pushExternal(const float* l, const float* r, int n) noexcept
+{
+    pushInto(extRing, l, r, n);
+    if (source.load(std::memory_order_relaxed) == int(Source::External))
+        if (auto* t = tap.load(std::memory_order_acquire)) t->tapAudio(l, r, n, extRate.load(std::memory_order_relaxed));
+}
 
 AudioAnalyzer::Snapshot AudioAnalyzer::snapshot() const
 {

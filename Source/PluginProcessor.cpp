@@ -1,6 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "Core/AppPrefs.h"
+#include "Core/StandaloneSupport.h"
 
 DaliVisualProcessor::DaliVisualProcessor()
     : AudioProcessor(BusesProperties()
@@ -20,6 +21,16 @@ DaliVisualProcessor::DaliVisualProcessor()
 
     // Standalone on Windows listens to what the computer plays by default.
     setInputSource(canCaptureSystemAudio() ? SystemAudio : AudioInput);
+
+    engineState.recorder = &recorder;
+    analyzer.setTap(&recorder);
+
+    // Standalone: JUCE mutes the audio input by default (feedback protection). Our output is always
+    // silent, so open it - otherwise 'Audio Input' (the only source on a Mac) delivers pure silence.
+    // Deferred: the standalone wrapper finishes loading its own settings after creating the processor.
+    if (isStandalone())
+        for (int delayMs : { 300, 1500, 4000 })
+            juce::Timer::callAfterDelay(delayMs, [] { dali::standalone::unmuteInput(); });
 }
 
 void DaliVisualProcessor::setInputSource(int source)
@@ -233,7 +244,10 @@ DaliVisualProcessor::~DaliVisualProcessor()
     apvts.removeParameterListener(dali::params::id::scene, this);
     cancelPendingUpdate();
     loopback.stop();
+    analyzer.setTap(nullptr);
     output.close();
+    engineState.recorder = nullptr;
+    recorder.stop();                                   // the file is finished by the recorder's destructor
 }
 
 bool DaliVisualProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const

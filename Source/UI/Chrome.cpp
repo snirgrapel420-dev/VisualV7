@@ -1,6 +1,7 @@
 #include "Chrome.h"
 #include "../Core/AppPrefs.h"
 #include "../Output/OutputManager.h"
+#include "../Output/VideoRecorder.h"
 
 namespace dali
 {
@@ -63,8 +64,16 @@ void SourceCombo::timerCallback()
 HeaderBar::HeaderBar(DaliVisualProcessor& p) : proc(p), scene(p, params::id::scene), source(p), display(p)
 {
     for (juce::Component* c : std::initializer_list<juce::Component*> { &scene, &source, &display, &identify, &live, &panelBtn, &settings,
-                                                                        &undoBtn, &redoBtn, &chaos })
+                                                                        &undoBtn, &redoBtn, &chaos, &rec })
         addAndMakeVisible(c);
+
+    rec.setClickingTogglesState(false);
+    rec.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xffe0304a));
+    rec.setTooltip("Record the visuals together with the audio they react to into an .mp4 video "
+                   "(format, resolution and folder: SETTINGS). Click again to stop.");
+    rec.onClick = [this] { toggleRecording(); };
+    rec.setEnabled(VideoRecorder::isSupported());
+    proc.recorder.finished.addChangeListener(this);
 
     identify.onClick = [this] { proc.output.identifyDisplays(); };
     undoBtn.onClick = [this] { proc.undo(); };
@@ -91,13 +100,87 @@ HeaderBar::HeaderBar(DaliVisualProcessor& p) : proc(p), scene(p, params::id::sce
     proc.output.addChangeListener(this);
     proc.historyChanged.addChangeListener(this);
     updateLiveButton();
+    updateRecButton();
     startTimerHz(4);
 }
 
 HeaderBar::~HeaderBar()
 {
+    proc.recorder.finished.removeChangeListener(this);
     proc.historyChanged.removeChangeListener(this);
     proc.output.removeChangeListener(this);
+}
+
+void HeaderBar::changeListenerCallback(juce::ChangeBroadcaster* broadcaster)
+{
+    if (broadcaster != &proc.recorder.finished) { updateLiveButton(); return; }
+
+    updateRecButton();
+    const auto r = proc.recorder.getLastResult();
+    const auto file = r.file;
+    if (r.ok)
+    {
+        const int secs = juce::roundToInt(r.seconds);
+        juce::String msg;
+        msg << "Saved " << juce::String(secs / 60) << ":" << juce::String(secs % 60).paddedLeft('0', 2)
+            << "  (" << r.width << " x " << r.height << ")\n\n" << file.getFullPathName();
+        if (r.error.isNotEmpty()) msg << "\n\n" << r.error;
+        juce::AlertWindow::showAsync(juce::MessageBoxOptions()
+                                         .withIconType(juce::MessageBoxIconType::InfoIcon)
+                                         .withTitle("Recording saved")
+                                         .withMessage(msg)
+                                         .withButton("Show in Folder")
+                                         .withButton("OK"),
+                                     [file](int result) { if (result == 1) file.revealToUser(); });
+    }
+    else
+    {
+        juce::AlertWindow::showAsync(juce::MessageBoxOptions()
+                                         .withIconType(juce::MessageBoxIconType::WarningIcon)
+                                         .withTitle("Recording failed")
+                                         .withMessage(r.error.isNotEmpty() ? r.error : juce::String("The recording could not be saved."))
+                                         .withButton("OK"),
+                                     [](int) {});
+    }
+}
+
+void HeaderBar::toggleRecording()
+{
+    if (proc.recorder.isRecording()) { proc.recorder.stop(); updateRecButton(); return; }
+    juce::String error;
+    if (!proc.recorder.start(VideoRecorder::loadSettings(), error))
+        juce::AlertWindow::showAsync(juce::MessageBoxOptions()
+                                         .withIconType(juce::MessageBoxIconType::WarningIcon)
+                                         .withTitle("Cannot record")
+                                         .withMessage(error)
+                                         .withButton("OK"),
+                                     [](int) {});
+    updateRecButton();
+}
+
+void HeaderBar::updateRecButton()
+{
+    auto& r = proc.recorder;
+    if (r.isRecording())
+    {
+        const int secs = int(r.elapsedSeconds());
+        rec.setToggleState(true, juce::dontSendNotification);
+        rec.setButtonText(juce::String::fromUTF8("\xe2\x96\xa0 ") + juce::String(secs / 60).paddedLeft('0', 2) + ":"
+                          + juce::String(secs % 60).paddedLeft('0', 2));
+        rec.setEnabled(true);
+    }
+    else if (r.isFinishing())
+    {
+        rec.setToggleState(false, juce::dontSendNotification);
+        rec.setButtonText("SAVING...");
+        rec.setEnabled(false);
+    }
+    else
+    {
+        rec.setToggleState(false, juce::dontSendNotification);
+        rec.setButtonText(juce::String::fromUTF8("\xe2\x97\x8f REC"));
+        rec.setEnabled(VideoRecorder::isSupported());
+    }
 }
 
 void HeaderBar::updateLiveButton()
@@ -153,9 +236,12 @@ void HeaderBar::resized()
     x -= 86;  place(settings, x, 86);
     x -= 70;  place(panelBtn, x, 64);
     x -= 18 + 104; place(live, x, 104);
+    x -= 90;  place(rec, x, 84);
     x -= 40;  place(identify, x, 36, "");
-    x -= 200; place(display, x, 196, "OUTPUT DISPLAY");
-    const int sourceW = 188;
+    const bool narrow = getWidth() < 1500;
+    const int displayW = narrow ? 156 : 196;
+    x -= displayW + 4; place(display, x, displayW, "OUTPUT DISPLAY");
+    const int sourceW = narrow ? 150 : 188;
     x -= 18 + sourceW; place(source, x, sourceW, "AUDIO SOURCE");
     const int rightStart = x - 18;
 
@@ -266,13 +352,51 @@ SettingsPanel::SettingsPanel(DaliVisualProcessor& p) : proc(p), display(p), sour
     for (juce::Component* c : std::initializer_list<juce::Component*> {
              &outHeader, &audioHeader, &midiHeader, &infoHeader, &display, &source, &resolution, &displayLabel,
              &resolutionLabel, &sourceLabel, &sourceStatus, &midiLast, &info, &vsync, &previewWhileOutput,
-             &noteScenes, &programScenes, &identify, &openOutput, &clearMidi, &resetAll, &restoreSession })
+             &noteScenes, &programScenes, &identify, &openOutput, &clearMidi, &resetAll, &restoreSession,
+             &recHeader, &recFormat, &recQuality, &recFps, &recLabel, &recFolderLabel, &recFolder, &recChoose, &recOpen })
         addAndMakeVisible(c);
+
+    recLabel.setText("Format", juce::dontSendNotification);
+    recFolderLabel.setText("Save to", juce::dontSendNotification);
+    recFormat.addItem("As on screen", 1);
+    recFormat.addItem("16:9  landscape (YouTube)", 2);
+    recFormat.addItem("9:16  vertical (Reels / Stories / TikTok)", 3);
+    recFormat.addItem("1:1  square", 4);
+    recQuality.addItem("720p", 1);
+    recQuality.addItem("1080p  (Full HD)", 2);
+    recQuality.addItem("4K  (heavy)", 3);
+    recFps.addItem("30 fps", 30);
+    recFps.addItem("60 fps", 60);
+    recFormat.setTooltip("The picture of the video. A fixed format is shown in the preview while recording "
+                         "(what you see is what is recorded); the live output keeps its screen and is cropped to it.");
+    recQuality.setTooltip("Recording resolution (the short side). Rendered at this size, independent of the window.");
+    for (auto* c : { &recFormat, &recQuality, &recFps })
+        c->onChange = [this] { saveRecordingSettings(); };
+    recChoose.onClick = [this]
+    {
+        chooser = std::make_unique<juce::FileChooser>("Folder for recordings", VideoRecorder::folderFor(VideoRecorder::loadSettings()));
+        chooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
+                             [this](const juce::FileChooser& fc)
+                             {
+                                 const auto dir = fc.getResult();
+                                 if (dir == juce::File()) return;
+                                 auto st = VideoRecorder::loadSettings();
+                                 st.folder = dir;
+                                 VideoRecorder::saveSettings(st);
+                                 refresh();
+                             });
+    };
+    recOpen.onClick = []
+    {
+        const auto dir = VideoRecorder::folderFor(VideoRecorder::loadSettings());
+        dir.createDirectory();
+        dir.startAsProcess();
+    };
 
     displayLabel.setText("Output display", juce::dontSendNotification);
     resolutionLabel.setText("Render resolution", juce::dontSendNotification);
     sourceLabel.setText("Listen to", juce::dontSendNotification);
-    for (auto* l : { &displayLabel, &resolutionLabel, &sourceLabel, &sourceStatus, &midiLast, &info })
+    for (auto* l : { &displayLabel, &resolutionLabel, &sourceLabel, &sourceStatus, &midiLast, &info, &recLabel, &recFolderLabel, &recFolder })
     {
         l->setFont(juce::Font(juce::FontOptions(12.5f)));
         l->setColour(juce::Label::textColourId, colours::textDim);
@@ -300,7 +424,7 @@ SettingsPanel::SettingsPanel(DaliVisualProcessor& p) : proc(p), display(p), sour
     restoreSession.setToggleState(AppPrefs::restoreSession(), juce::dontSendNotification);
     restoreSession.onClick = [this] { AppPrefs::setRestoreSession(restoreSession.getToggleState()); };
     restoreSession.setVisible(proc.isStandalone());
-    setSize(580, 680);
+    setSize(580, 740);
     refresh();
     startTimerHz(4);
 }
@@ -314,6 +438,22 @@ void SettingsPanel::refresh()
     noteScenes.setToggleState(proc.midi.noteSceneSwitching.load(), juce::dontSendNotification);
     programScenes.setToggleState(proc.midi.programChangeScenes.load(), juce::dontSendNotification);
     openOutput.setButtonText(proc.output.isOpen() ? "STOP LIVE OUTPUT" : "GO LIVE");
+
+    const auto rs = VideoRecorder::loadSettings();
+    recFormat.setSelectedId(rs.format + 1, juce::dontSendNotification);
+    recQuality.setSelectedId(rs.quality + 1, juce::dontSendNotification);
+    recFps.setSelectedId(rs.fps, juce::dontSendNotification);
+    recFolder.setText(VideoRecorder::folderFor(rs).getFullPathName(), juce::dontSendNotification);
+    recFolder.setTooltip(recFolder.getText());
+}
+
+void SettingsPanel::saveRecordingSettings()
+{
+    auto st = VideoRecorder::loadSettings();
+    st.format  = juce::jmax(0, recFormat.getSelectedId() - 1);
+    st.quality = juce::jmax(0, recQuality.getSelectedId() - 1);
+    st.fps     = recFps.getSelectedId() == 30 ? 30 : 60;
+    VideoRecorder::saveSettings(st);
 }
 
 void SettingsPanel::timerCallback()
@@ -371,6 +511,17 @@ void SettingsPanel::resized()
     a.removeFromLeft(10);
     resetAll.setBounds(a.removeFromLeft(170).reduced(0, 2));
     if (restoreSession.isVisible()) restoreSession.setBounds(row(26));
+    r.removeFromTop(10);
+
+    recHeader.setBounds(row(24));
+    a = row(30); recLabel.setBounds(a.removeFromLeft(150));
+    recFps.setBounds(a.removeFromRight(80).reduced(0, 2)); a.removeFromRight(6);
+    recQuality.setBounds(a.removeFromRight(120).reduced(0, 2)); a.removeFromRight(6);
+    recFormat.setBounds(a.reduced(0, 2));
+    a = row(30); recFolderLabel.setBounds(a.removeFromLeft(150));
+    recOpen.setBounds(a.removeFromRight(64).reduced(0, 2)); a.removeFromRight(6);
+    recChoose.setBounds(a.removeFromRight(84).reduced(0, 2)); a.removeFromRight(6);
+    recFolder.setBounds(a);
     r.removeFromTop(10);
 
     infoHeader.setBounds(row(24));

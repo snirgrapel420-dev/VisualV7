@@ -1,6 +1,7 @@
 #include "RenderEngine.h"
 #include "../Output/NativeWindow.h"
 #include "../Output/FrameSink.h"
+#include "../Output/VideoRecorder.h"
 
 using namespace juce::gl;
 
@@ -153,6 +154,7 @@ void RenderEngine::openGLContextClosing()
     scenes.clear(); effects.clear();
     templateLayer.release(); templateComposite.release(); outputShader.release(); crossfade.release();
     templateHistory.release(); composite.release(); fadeTarget.release(); fxA.release(); fxB.release(); finalTarget.release();
+    recordCapture.release();
     if (dnaTex != 0)   glDeleteTextures(1, &dnaTex);
     if (colorTex != 0) glDeleteTextures(1, &colorTex);
     if (flowTex != 0) glDeleteTextures(1, &flowTex);
@@ -566,8 +568,18 @@ void RenderEngine::renderOpenGL()
     }
     else if (!isPreview || !outputActive) state.telemetry.quality = shaderQuality;
     // (the preview window is small: rendering it at full quality costs little, and it must match the output)
-    const int w = juce::jmax(16, juce::roundToInt(physW * resScale));
-    const int h = juce::jmax(16, juce::roundToInt(physH * resScale));
+    // RECORDING: the engine that publishes the output also renders the video frames. The preview then
+    // renders the recording's own frame (its size and aspect, shown letterboxed) - what you see is what
+    // is recorded, at full recording resolution; the live output keeps its screen and is cropped to fill.
+    auto* recorder = state.recorder;
+    const bool publishes = (role == Role::Output) || !outputActive;
+    int recW = 0, recH = 0;
+    const bool recordingHere = recorder != nullptr && publishes && recorder->frameSize(physW, physH, recW, recH);
+    const bool recordFrameView = recordingHere && isPreview;
+    const int baseW = recordFrameView ? recW : physW;
+    const int baseH = recordFrameView ? recH : physH;
+    const int w = juce::jmax(16, juce::roundToInt(baseW * resScale));
+    const int h = juce::jmax(16, juce::roundToInt(baseH * resScale));
 
     updateAnalysis(now, dt);
     updateModulation(dt);
@@ -756,9 +768,26 @@ void RenderEngine::renderOpenGL()
     }
     if (role == Role::Output) { state.telemetry.outSurfaceW = screenW; state.telemetry.outSurfaceH = screenH;
                                 state.telemetry.outRenderW = w; state.telemetry.outRenderH = h; }
+    if (recordingHere)
+        recordCapture.process(*recorder, recW, recH, w, h, [&](int vw, int vh) { runOutput(vw, vh); });
+    else if (recordCapture.isAllocated())
+        recordCapture.release();
+
     glBindFramebuffer(GL_FRAMEBUFFER, GLuint(screenFbo));
     glViewport(0, 0, screenW, screenH);
-    runOutput(screenW, screenH);
+    if (recordFrameView && std::abs(float(w) / float(h) - float(screenW) / float(juce::jmax(1, screenH))) > 0.01f)
+    {
+        // letterbox: the recording frame inside the preview
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        const float a = float(w) / float(h);
+        int vw = screenW, vh = juce::roundToInt(screenW / a);
+        if (vh > screenH) { vh = screenH; vw = juce::roundToInt(screenH * a); }
+        glViewport((screenW - vw) / 2, (screenH - vh) / 2, vw, vh);
+        runOutput(vw, vh);
+    }
+    else
+        runOutput(screenW, screenH);
 
     bindTexture(0, src);                                  // other passes sample it at level 0 only
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
