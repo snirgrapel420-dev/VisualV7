@@ -13,6 +13,11 @@
 
 namespace dali
 {
+/** Serial number dialog (activate / show / remove). Message thread. */
+void showLicenseDialog(DaliVisualProcessor& p);
+/** At launch: the serial / free-trial window, once per process, unless the full version is active. */
+void showLaunchLicenseDialog(DaliVisualProcessor& p);
+
 /** Output-display chooser, shared by the header and the settings window. */
 class DisplayCombo : public juce::ComboBox, private juce::Timer
 {
@@ -48,10 +53,12 @@ public:
 
 private:
     void changeListenerCallback(juce::ChangeBroadcaster* broadcaster) override;
-    void timerCallback() override { updateLiveButton(); updateRecButton(); }
+    void timerCallback() override { updateLiveButton(); updateRecButton(); if (++licenseTicks % 20 == 0) updateLicenseState(); }
     void updateLiveButton();
     void updateRecButton();
     void toggleRecording();
+    void updateLicenseState();
+    void showLockedNotice();
 
     DaliVisualProcessor& proc;
     ParamCombo scene;
@@ -60,7 +67,8 @@ private:
     juce::TextButton identify { "ID" },
                      live { "GO LIVE" }, panelBtn { "PANEL" }, settings { "SETTINGS" },
                      undoBtn { juce::String::fromUTF8("\xe2\x86\xb6") }, redoBtn { juce::String::fromUTF8("\xe2\x86\xb7") },
-                     chaos { "CHAOS" }, rec { "REC" };
+                     chaos { "CHAOS" }, rec { "REC" }, demoBadge { "DEMO" };
+    int licenseShown = -1, licenseTicks = 0;
     std::unique_ptr<juce::ButtonParameterAttachment> chaosAttachment;
     struct Caption { juce::String text; juce::Rectangle<int> area; };
     juce::Array<Caption> captions;
@@ -103,7 +111,7 @@ private:
                        noteScenes { "Notes C1-G2 select scenes 1-20" },
                        programScenes { "Program Change selects scenes" };
     juce::TextButton identify { "Identify Displays" }, openOutput { "GO LIVE" },
-                     clearMidi { "Clear all MIDI mappings" }, resetAll { "Reset Everything" };
+                     clearMidi { "Clear all MIDI mappings" }, resetAll { "Reset Everything" }, licenseBtn { "License..." };
     juce::ToggleButton restoreSession { "Restore the last session on launch (standalone)" };
 
     // recording
