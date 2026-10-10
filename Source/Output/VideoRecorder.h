@@ -39,6 +39,7 @@ public:
         int quality = Quality1080;      // the short side: 720 / 1080 / 2160
         int fps     = 60;               // 30 or 60
         juce::File folder;              // empty = default (Videos / Movies / "Dali Visual")
+        double maxSeconds = 0.0;        // > 0: stops by itself after this long (demo); not stored
     };
     static Settings loadSettings();
     static void saveSettings(const Settings&);
@@ -55,7 +56,9 @@ public:
     bool isRecording() const noexcept   { return recording.load(); }
     bool isFinishing() const noexcept   { return finishing.load(); }
     double elapsedSeconds() const;
-    struct Result { bool ok = false; juce::File file; juce::String error; double seconds = 0.0; int width = 0, height = 0; };
+    struct Result { bool ok = false; juce::File file; juce::String error; double seconds = 0.0; int width = 0, height = 0;
+                    bool limitReached = false; };
+    double getMaxSeconds() const noexcept { return current.maxSeconds; }
     Result getLastResult() const;
     /** Broadcast (message thread) when a recording has been finished or has failed. */
     juce::ChangeBroadcaster finished;
