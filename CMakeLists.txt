@@ -8,7 +8,7 @@
 #    3. FetchContent download of JUCE 8.0.4
 # =============================================================================
 cmake_minimum_required(VERSION 3.22)
-project(DaliVisual VERSION 6.7.0 LANGUAGES C CXX)
+project(DaliVisual VERSION 6.9.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -56,7 +56,8 @@ file(GLOB DALI_SHADERS CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.frag"
     "${CMAKE_CURRENT_SOURCE_DIR}/Shaders/scenes/*.frag"
     "${CMAKE_CURRENT_SOURCE_DIR}/Shaders/fx/*.frag"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Resources/thumbs/*.jpg")
+    "${CMAKE_CURRENT_SOURCE_DIR}/Resources/thumbs/*.jpg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Resources/watermark.png")
 juce_add_binary_data(DaliVisualBinaryData
     HEADER_NAME BinaryData.h
     NAMESPACE   BinaryData
@@ -87,6 +88,7 @@ target_sources(DaliVisual PRIVATE
     Source/Output/VideoEncoderWin.cpp
     Source/Render/RecordCapture.cpp
     Source/Core/StandaloneSupport.cpp
+    Source/Core/License.cpp
     Source/Midi/MidiMapper.cpp
     Source/UI/DaliLookAndFeel.cpp
     Source/UI/ParamControls.cpp
@@ -121,6 +123,7 @@ target_link_libraries(DaliVisual
         DaliVisualBinaryData
         juce::juce_audio_utils
         juce::juce_opengl
+        juce::juce_cryptography
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags)
