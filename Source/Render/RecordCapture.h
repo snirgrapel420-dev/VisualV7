@@ -22,7 +22,8 @@ public:
         drawOutput(vw, vh) draws the output pass into the bound framebuffer / viewport.
         srcW x srcH: the aspect of the image being drawn (cropped to fill the frame). */
     void process(VideoRecorder& rec, int frameW, int frameH, int srcW, int srcH,
-                 const std::function<void(int, int)>& drawOutput);
+                 const std::function<void(int, int)>& drawOutput,
+                 const std::function<void(int, int)>& drawOverlay = {});   // over the whole frame (watermark)
     /** GL thread: frees everything (context closing, or recording over). */
     void release();
     bool isAllocated() const noexcept { return fboA != 0; }
