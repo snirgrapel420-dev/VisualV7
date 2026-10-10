@@ -1,4 +1,5 @@
 #include "AutoPilot.h"
+#include "License.h"
 #include "../Render/Library.h"
 
 namespace dali
@@ -43,7 +44,7 @@ void AutoPilot::timerCallback()
     const int n = int(sceneLibrary().size());
     juce::Array<int> pool;
     for (int i = 0; i < n; ++i)
-        if (i != current && i != kImageSceneIndex) pool.add(i);
+        if (i != current && i != kImageSceneIndex && License::isSceneAllowed(i)) pool.add(i);
     if (pool.isEmpty()) return;
     const int next = pool[random.nextInt(pool.size())];
     beats = 0.0;
