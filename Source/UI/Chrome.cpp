@@ -2,9 +2,114 @@
 #include "../Core/AppPrefs.h"
 #include "../Output/OutputManager.h"
 #include "../Output/VideoRecorder.h"
+#include "../Render/Library.h"
 
 namespace dali
 {
+// =============================================================================
+//  license dialog
+// =============================================================================
+void showLicenseDialog(DaliVisualProcessor& proc)
+{
+    if (License::isFull())
+    {
+        juce::AlertWindow::showAsync(juce::MessageBoxOptions()
+                                         .withIconType(juce::MessageBoxIconType::InfoIcon)
+                                         .withTitle("Dali Visual - Full version")
+                                         .withMessage("Activated with serial " + License::maskedSerial() + ".\n\nThank you for supporting DALI AUDIO!")
+                                         .withButton("OK")
+                                         .withButton("Remove License..."),
+                                     [&proc](int result)
+                                     {
+                                         if (result != 0) return;                      // last button = 0
+                                         juce::AlertWindow::showAsync(juce::MessageBoxOptions()
+                                                                          .withIconType(juce::MessageBoxIconType::QuestionIcon)
+                                                                          .withTitle("Remove license")
+                                                                          .withMessage("Remove the serial from this computer? Dali Visual goes back to the demo.")
+                                                                          .withButton("Remove")
+                                                                          .withButton("Cancel"),
+                                                                      [&proc](int r)
+                                                                      {
+                                                                          if (r != 1) return;
+                                                                          License::deactivate();
+                                                                          proc.licenseChanged.sendChangeMessage();
+                                                                      });
+                                     });
+        return;
+    }
+
+    // DEMO / TRIAL: serial entry, the 7-day trial (once per computer), buy, or carry on
+    juce::String message;
+    const auto mode = License::mode();
+    if (mode == License::Mode::Trial)
+        message << "Free trial: " << License::trialDaysLeft() << (License::trialDaysLeft() == 1 ? " day left." : " days left.")
+                << " Everything is unlocked; the DALI AUDIO watermark appears on the picture.\n\n";
+    else if (License::canStartTrial())
+        message << "Try the full version free for " << License::trialDays << " days (the DALI AUDIO watermark stays on the picture),"
+                << " or enter your serial number.\n\n";
+    else
+        message << "Your free trial has ended. Enter your serial number to unlock the full version.\n\n";
+    message << License::demoSummary();
+
+    auto* w = new juce::AlertWindow("Dali Visual", message, juce::MessageBoxIconType::NoIcon);
+    w->addTextEditor("serial", {}, "Serial (DALI-XXXX-XXXX-XXXX)");
+    w->addButton("Activate", 1, juce::KeyPress(juce::KeyPress::returnKey));
+    if (mode == License::Mode::Demo && License::canStartTrial())
+        w->addButton("Start " + juce::String(License::trialDays) + "-Day Free Trial", 3);
+    w->addButton("Buy...", 2);
+    w->addButton(mode == License::Mode::Trial ? "Continue Trial" : "Continue Demo", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+    w->setAlwaysOnTop(true);
+    w->enterModalState(true, juce::ModalCallbackFunction::create([&proc, w](int result)
+    {
+        if (result == 2) { juce::URL(License::buyUrl).launchInDefaultBrowser(); return; }
+        if (result == 3)
+        {
+            const bool ok = License::startTrial();
+            proc.licenseChanged.sendChangeMessage();
+            juce::AlertWindow::showAsync(juce::MessageBoxOptions()
+                                             .withIconType(ok ? juce::MessageBoxIconType::InfoIcon : juce::MessageBoxIconType::WarningIcon)
+                                             .withTitle(ok ? "Trial started" : "Trial not available")
+                                             .withMessage(ok ? "Everything is unlocked for " + juce::String(License::trialDays)
+                                                                   + " days: all scenes, GO LIVE, REC and your own images.\n"
+                                                                   "The DALI AUDIO watermark appears on the picture during the trial."
+                                                             : juce::String("The free trial was already used on this computer."))
+                                             .withButton("OK"),
+                                         [](int) {});
+            return;
+        }
+        if (result != 1) return;
+        const auto serial = w->getTextEditorContents("serial");
+        if (License::activate(serial))
+        {
+            proc.licenseChanged.sendChangeMessage();
+            juce::AlertWindow::showAsync(juce::MessageBoxOptions()
+                                             .withIconType(juce::MessageBoxIconType::InfoIcon)
+                                             .withTitle("Activated")
+                                             .withMessage("Dali Visual is now the full version - every scene, GO LIVE, unlimited REC, your own images and no watermark.")
+                                             .withButton("OK"),
+                                         [](int) {});
+        }
+        else
+        {
+            juce::AlertWindow::showAsync(juce::MessageBoxOptions()
+                                             .withIconType(juce::MessageBoxIconType::WarningIcon)
+                                             .withTitle("Invalid serial")
+                                             .withMessage("This serial number is not valid. Check it and try again\n(letters and digits only; the dashes are optional).")
+                                             .withButton("Try Again")
+                                             .withButton("Cancel"),
+                                         [&proc](int r) { if (r == 1) showLicenseDialog(proc); });
+        }
+    }), true);
+}
+
+void showLaunchLicenseDialog(DaliVisualProcessor& proc)
+{
+    static bool shown = false;                         // once per process (a DAW may open many editors)
+    if (shown || License::isFull()) return;
+    shown = true;
+    showLicenseDialog(proc);
+}
+
 // =============================================================================
 //  shared combos
 // =============================================================================
@@ -67,6 +172,14 @@ HeaderBar::HeaderBar(DaliVisualProcessor& p) : proc(p), scene(p, params::id::sce
                                                                         &undoBtn, &redoBtn, &chaos, &rec })
         addAndMakeVisible(c);
 
+    addChildComponent(demoBadge);
+    demoBadge.setColour(juce::TextButton::buttonColourId, juce::Colour(0xffe0304a));
+    demoBadge.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    demoBadge.setTooltip("Demo version - click to enter your serial number");
+    demoBadge.onClick = [this] { showLicenseDialog(proc); };
+    proc.lockedFeatureHit.addChangeListener(this);
+    proc.licenseChanged.addChangeListener(this);
+
     rec.setClickingTogglesState(false);
     rec.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xffe0304a));
     rec.setTooltip("Record the visuals together with the audio they react to into an .mp4 video "
@@ -101,18 +214,23 @@ HeaderBar::HeaderBar(DaliVisualProcessor& p) : proc(p), scene(p, params::id::sce
     proc.historyChanged.addChangeListener(this);
     updateLiveButton();
     updateRecButton();
+    updateLicenseState();
     startTimerHz(4);
 }
 
 HeaderBar::~HeaderBar()
 {
     proc.recorder.finished.removeChangeListener(this);
+    proc.lockedFeatureHit.removeChangeListener(this);
+    proc.licenseChanged.removeChangeListener(this);
     proc.historyChanged.removeChangeListener(this);
     proc.output.removeChangeListener(this);
 }
 
 void HeaderBar::changeListenerCallback(juce::ChangeBroadcaster* broadcaster)
 {
+    if (broadcaster == &proc.lockedFeatureHit) { showLockedNotice(); return; }
+    if (broadcaster == &proc.licenseChanged)   { updateLicenseState(); return; }
     if (broadcaster != &proc.recorder.finished) { updateLiveButton(); return; }
 
     updateRecButton();
@@ -125,6 +243,9 @@ void HeaderBar::changeListenerCallback(juce::ChangeBroadcaster* broadcaster)
         msg << "Saved " << juce::String(secs / 60) << ":" << juce::String(secs % 60).paddedLeft('0', 2)
             << "  (" << r.width << " x " << r.height << ")\n\n" << file.getFullPathName();
         if (r.error.isNotEmpty()) msg << "\n\n" << r.error;
+        if (r.limitReached)
+            msg << "\n\nDemo recordings stop after " << juce::roundToInt(r.seconds) << " seconds and carry the DALI AUDIO logo. "
+                << "The full version records without a limit and without the watermark.";
         juce::AlertWindow::showAsync(juce::MessageBoxOptions()
                                          .withIconType(juce::MessageBoxIconType::InfoIcon)
                                          .withTitle("Recording saved")
@@ -144,11 +265,65 @@ void HeaderBar::changeListenerCallback(juce::ChangeBroadcaster* broadcaster)
     }
 }
 
+void HeaderBar::showLockedNotice()
+{
+    const auto f = proc.getLastLockedFeature();
+    juce::AlertWindow::showAsync(juce::MessageBoxOptions()
+                                     .withIconType(juce::MessageBoxIconType::InfoIcon)
+                                     .withTitle("Full version")
+                                     .withMessage(License::featureName(f) + " is available in the full version of Dali Visual"
+                                                  + (License::canStartTrial() ? juce::String(" - or free for " + juce::String(License::trialDays) + " days with the trial.")
+                                                                              : juce::String("."))
+                                                  + "\n\n" + License::demoSummary())
+                                     .withButton(License::canStartTrial() ? "Free Trial / Serial..." : "Enter Serial...")
+                                     .withButton("Buy...")
+                                     .withButton("OK"),
+                                 [this](int result)
+                                 {
+                                     if (result == 1) showLicenseDialog(proc);
+                                     if (result == 2) juce::URL(License::buyUrl).launchInDefaultBrowser();
+                                 });
+}
+
+void HeaderBar::updateLicenseState()
+{
+    const auto mode = License::mode();
+    const int key = int(mode) * 100 + License::trialDaysLeft();
+    if (key == licenseShown) return;
+    licenseShown = key;
+    demoBadge.setVisible(mode != License::Mode::Full);
+    if (mode == License::Mode::Trial)
+    {
+        demoBadge.setButtonText("TRIAL " + juce::String(License::trialDaysLeft()) + "d");
+        demoBadge.setColour(juce::TextButton::buttonColourId, juce::Colour(0xffe08a1e));
+        demoBadge.setTooltip("Free trial - " + License::statusText() + ". Click to enter your serial number.");
+    }
+    else
+    {
+        demoBadge.setButtonText("DEMO");
+        demoBadge.setColour(juce::TextButton::buttonColourId, juce::Colour(0xffe0304a));
+        demoBadge.setTooltip("Demo version - click for the free trial or your serial number");
+    }
+    // scene chooser: locked scenes are greyed out in the demo
+    for (int i = 0; i < scene.getNumItems(); ++i)
+    {
+        const int id = scene.getItemId(i);
+        const bool allowed = License::isSceneAllowed(id - 1);
+        scene.setItemEnabled(id, allowed);
+        auto text = sceneLibrary()[size_t(juce::jlimit(0, int(sceneLibrary().size()) - 1, id - 1))].name;
+        scene.changeItemText(id, allowed ? juce::String(text) : juce::String(text) + "   (full version)");
+    }
+    if (auto* top = getTopLevelComponent()) top->repaint();       // scene tiles show / drop their locks
+}
+
 void HeaderBar::toggleRecording()
 {
     if (proc.recorder.isRecording()) { proc.recorder.stop(); updateRecButton(); return; }
+    if (!proc.requireFeature(Feature::Recording)) return;
     juce::String error;
-    if (!proc.recorder.start(VideoRecorder::loadSettings(), error))
+    auto recSettings = VideoRecorder::loadSettings();
+    recSettings.maxSeconds = License::recordingLimitSeconds();            // demo: 30 s
+    if (!proc.recorder.start(recSettings, error))
         juce::AlertWindow::showAsync(juce::MessageBoxOptions()
                                          .withIconType(juce::MessageBoxIconType::WarningIcon)
                                          .withTitle("Cannot record")
@@ -165,8 +340,10 @@ void HeaderBar::updateRecButton()
     {
         const int secs = int(r.elapsedSeconds());
         rec.setToggleState(true, juce::dontSendNotification);
+        const int limit = int(r.getMaxSeconds());
         rec.setButtonText(juce::String::fromUTF8("\xe2\x96\xa0 ") + juce::String(secs / 60).paddedLeft('0', 2) + ":"
-                          + juce::String(secs % 60).paddedLeft('0', 2));
+                          + juce::String(secs % 60).paddedLeft('0', 2)
+                          + (limit > 0 ? " / " + juce::String(limit) + "s" : juce::String()));
         rec.setEnabled(true);
     }
     else if (r.isFinishing())
@@ -252,6 +429,7 @@ void HeaderBar::resized()
     place(chaos, lx + sceneW + 8, 84);
     place(undoBtn, lx + sceneW + 8 + 90, 30);
     place(redoBtn, lx + sceneW + 8 + 90 + 32, 30);
+    demoBadge.setBounds(122, 32, 56, 16);
 }
 
 // =============================================================================
@@ -353,7 +531,7 @@ SettingsPanel::SettingsPanel(DaliVisualProcessor& p) : proc(p), display(p), sour
              &outHeader, &audioHeader, &midiHeader, &infoHeader, &display, &source, &resolution, &displayLabel,
              &resolutionLabel, &sourceLabel, &sourceStatus, &midiLast, &info, &vsync, &previewWhileOutput,
              &noteScenes, &programScenes, &identify, &openOutput, &clearMidi, &resetAll, &restoreSession,
-             &recHeader, &recFormat, &recQuality, &recFps, &recLabel, &recFolderLabel, &recFolder, &recChoose, &recOpen })
+             &recHeader, &recFormat, &recQuality, &recFps, &recLabel, &recFolderLabel, &recFolder, &recChoose, &recOpen, &licenseBtn })
         addAndMakeVisible(c);
 
     recLabel.setText("Format", juce::dontSendNotification);
@@ -419,6 +597,8 @@ SettingsPanel::SettingsPanel(DaliVisualProcessor& p) : proc(p), display(p), sour
     clearMidi.onClick = [this] { proc.midi.clearAll(); };
     resetAll.setTooltip("All parameters, modulation, effects and the image back to the start, first scene at its init (Ctrl+Z undoes)");
     resetAll.onClick = [this] { proc.resetEverything(); };
+    licenseBtn.onClick = [this] { showLicenseDialog(proc); };
+    licenseBtn.setTooltip("Activate, show or remove your serial number");
     restoreSession.setTooltip("Off: every launch starts fresh (display, render, MIDI mappings and audio source are always kept). "
                               "On: the last session's scene, modulation, effects and image come back too.");
     restoreSession.setToggleState(AppPrefs::restoreSession(), juce::dontSendNotification);
@@ -466,6 +646,7 @@ void SettingsPanel::timerCallback()
     juce::String renderer;
     { const juce::SpinLock::ScopedLockType sl(proc.engineState.telemetry.infoLock); renderer = proc.engineState.telemetry.rendererInfo; }
     juce::String s;
+    s << "License: " << License::statusText() << "\n";
     s << "Renderer: " << (renderer.isNotEmpty() ? renderer : juce::String("starting...")) << "\n"
       << (proc.isStandalone() ? "Standalone - with 'Audio Input', choose the device under Options > Audio/MIDI Settings."
                               : "Plug-in - listens to the track it is inserted on; audio passes through unchanged.");
@@ -510,6 +691,8 @@ void SettingsPanel::resized()
     clearMidi.setBounds(a.removeFromLeft(230).reduced(0, 2));
     a.removeFromLeft(10);
     resetAll.setBounds(a.removeFromLeft(170).reduced(0, 2));
+    a.removeFromLeft(10);
+    licenseBtn.setBounds(a.reduced(0, 2));
     if (restoreSession.isVisible()) restoreSession.setBounds(row(26));
     r.removeFromTop(10);
 
