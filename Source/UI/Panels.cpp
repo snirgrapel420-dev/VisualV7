@@ -56,6 +56,18 @@ public:
         g.setColour(on ? colours::accent : colours::textDim);
         g.setFont(juce::Font(juce::FontOptions(10.0f, juce::Font::bold)));
         g.drawText(juce::String(index + 1), r.reduced(8.0f, 6.0f).toNearestInt(), juce::Justification::topLeft);
+        if (!License::isSceneAllowed(index))
+        {
+            // DEMO: locked scene
+            g.setColour(juce::Colours::black.withAlpha(0.45f));
+            g.fillRoundedRectangle(r.reduced(1.0f), 7.0f);
+            auto pill = juce::Rectangle<float>(r.getRight() - 46.0f, r.getY() + 6.0f, 40.0f, 15.0f);
+            g.setColour(juce::Colour(0xffe0304a));
+            g.fillRoundedRectangle(pill, 7.5f);
+            g.setColour(juce::Colours::white);
+            g.setFont(juce::Font(juce::FontOptions(9.0f, juce::Font::bold)));
+            g.drawText("FULL", pill, juce::Justification::centred);
+        }
         juce::ignoreUnused(down);
     }
 private:
@@ -749,6 +761,7 @@ ImagePanel::~ImagePanel() { proc.image.removeChangeListener(this); }
 
 void ImagePanel::showImageScene()
 {
+    if (!proc.requireFeature(Feature::Image)) return;
     // coming from another scene: start clean so nothing of that preset is applied to the image
     const bool alreadyShowing = juce::roundToInt(proc.apvts.getRawParameterValue(params::id::scene)->load()) == kImageSceneIndex;
     if (!alreadyShowing) proc.applyImageReactorLook(false);
@@ -847,6 +860,7 @@ void ImagePanel::mouseUp(const juce::MouseEvent& e)
 
 void ImagePanel::chooseImage()
 {
+    if (!proc.requireFeature(Feature::Image)) return;
     chooser = std::make_unique<juce::FileChooser>("Choose an image", juce::File(), "*.png;*.jpg;*.jpeg;*.gif;*.bmp");
     chooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
         [this](const juce::FileChooser& fc)
@@ -875,6 +889,7 @@ void ImagePanel::saveTemplate()
 
 void ImagePanel::loadTemplate()
 {
+    if (!proc.requireFeature(Feature::Image)) return;
     chooser = std::make_unique<juce::FileChooser>("Load template", TemplateGenerator::defaultFolder(),
                                                   juce::String("*") + TemplateGenerator::fileExtension);
     chooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
