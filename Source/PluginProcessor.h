@@ -22,6 +22,7 @@
 #include "Midi/MidiMapper.h"
 #include "Output/OutputManager.h"
 #include "Output/VideoRecorder.h"
+#include "Core/License.h"
 
 class DaliVisualProcessor : public juce::AudioProcessor,
                             private juce::AudioProcessorValueTreeState::Listener,
@@ -80,6 +81,15 @@ public:
     /** Message thread: everything back to the start (all parameters, modulation, effects, image); undoable. */
     void resetEverything();
 
+    // ---- DEMO / license (message thread) -------------------------------------------------------
+    /** True when the feature is available; otherwise remembers it and notifies lockedFeatureHit
+        (the editor then explains it and offers activation). */
+    bool requireFeature(dali::Feature f);
+    dali::Feature getLastLockedFeature() const noexcept { return lastLocked; }
+    juce::ChangeBroadcaster lockedFeatureHit;
+    /** Sent after a serial was activated / removed (the UI refreshes its locks). */
+    juce::ChangeBroadcaster licenseChanged;
+
     // ---- audio source (standalone) ---------------------------------------------------------
     enum InputSource { AudioInput = 0, SystemAudio = 1 };
     /** Message thread. SystemAudio = what the computer plays (Windows loopback). */
@@ -113,6 +123,8 @@ private:
     std::atomic<float>* sensitivityParam = nullptr;
     std::atomic<int> inputSource { AudioInput };
     double sampleRate = 48000.0;
+    dali::Feature lastLocked = dali::Feature::Scene;
+    double lastLockedTime = 0.0;
     float loadSmoothed = 0.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DaliVisualProcessor)

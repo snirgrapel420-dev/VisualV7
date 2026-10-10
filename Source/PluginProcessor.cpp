@@ -22,6 +22,9 @@ DaliVisualProcessor::DaliVisualProcessor()
     // Standalone on Windows listens to what the computer plays by default.
     setInputSource(canCaptureSystemAudio() ? SystemAudio : AudioInput);
 
+    dali::License::refresh();
+    output.allowOpen = [this] { return requireFeature(dali::Feature::LiveOutput); };
+
     engineState.recorder = &recorder;
     analyzer.setTap(&recorder);
 
@@ -114,9 +117,30 @@ void DaliVisualProcessor::parameterChanged(const juce::String&, float)
     triggerAsyncUpdate();          // (may be called from the audio thread: apply on the message thread)
 }
 
+bool DaliVisualProcessor::requireFeature(dali::Feature f)
+{
+    if (f != dali::Feature::Scene && dali::License::allows(f)) return true;
+    lastLocked = f;
+    const double now = juce::Time::getMillisecondCounterHiRes();
+    if (now - lastLockedTime > 1500.0)                   // automation / MIDI may hit it repeatedly: one notice
+    {
+        lastLockedTime = now;
+        lockedFeatureHit.sendChangeMessage();
+    }
+    return false;
+}
+
 void DaliVisualProcessor::handleAsyncUpdate()
 {
     const int scene = juce::roundToInt(apvts.getRawParameterValue(dali::params::id::scene)->load());
+    if (!dali::License::isSceneAllowed(scene))
+    {
+        // DEMO: a locked scene (chosen by the UI, MIDI, automation or a restored session) goes back to an open one
+        if (auto* prm = apvts.getParameter(dali::params::id::scene))
+            prm->setValueNotifyingHost(prm->convertTo0to1(float(dali::License::nearestAllowedScene(scene))));
+        if (restoring == 0) requireFeature(dali::Feature::Scene);
+        return;
+    }
     if (scene == lastSceneSeen) return;
     lastSceneSeen = scene;
     if (restoring > 0 || apvts.getRawParameterValue(dali::params::id::sceneInit)->load() < 0.5f) return;
