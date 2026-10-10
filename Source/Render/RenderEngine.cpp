@@ -2,6 +2,9 @@
 #include "../Output/NativeWindow.h"
 #include "../Output/FrameSink.h"
 #include "../Output/VideoRecorder.h"
+#include "../Core/License.h"
+#include "BinaryData.h"
+#include <cstring>
 
 using namespace juce::gl;
 
@@ -125,6 +128,7 @@ void RenderEngine::newOpenGLContextCreated()
     check(templateLayer,     templateLayer.build(vertexSrc, Shader::assembleFragment(Shader::resource("template_layer_frag")), "Template Layer"));
     check(templateComposite, templateComposite.build(vertexSrc, Shader::assembleFragment(Shader::resource("template_composite_frag")), "Template Composite"));
     check(outputShader,      outputShader.build(vertexSrc, Shader::assembleFragment(Shader::resource("output_frag")), "Output"));
+    createWatermark();
     check(crossfade,         crossfade.build(vertexSrc, Shader::assembleFragment(Shader::resource("crossfade_frag")), "Crossfade"));
 
     const juce::String info = juce::String((const char*) glGetString(GL_RENDERER)) + "  |  OpenGL "
@@ -155,6 +159,9 @@ void RenderEngine::openGLContextClosing()
     templateLayer.release(); templateComposite.release(); outputShader.release(); crossfade.release();
     templateHistory.release(); composite.release(); fadeTarget.release(); fxA.release(); fxB.release(); finalTarget.release();
     recordCapture.release();
+    watermarkShader.release();
+    if (logoTex != 0) glDeleteTextures(1, &logoTex);
+    logoTex = 0;
     if (dnaTex != 0)   glDeleteTextures(1, &dnaTex);
     if (colorTex != 0) glDeleteTextures(1, &colorTex);
     if (flowTex != 0) glDeleteTextures(1, &flowTex);
@@ -457,6 +464,100 @@ void RenderEngine::bindTexture(int unit, unsigned int tex)
 
 void RenderEngine::drawFullscreen() { glDrawArrays(GL_TRIANGLES, 0, 3); }
 
+// =============================================================================
+//  DEMO watermark
+// =============================================================================
+void RenderEngine::createWatermark()
+{
+    static const char* frag = R"(#version 150
+in vec2 vUV;
+out vec4 fragColor;
+uniform sampler2D uLogo;
+uniform float uAlpha;
+void main() { fragColor = texture(uLogo, vec2(vUV.x, 1.0 - vUV.y)) * uAlpha; }   // premultiplied
+)";
+    watermarkShader.build(vertexSrc, frag, "Watermark");
+
+    int size = 0;
+    juce::Image img;
+    if (const char* data = BinaryData::getNamedResource("watermark_png", size))
+        img = juce::ImageFileFormat::loadFrom(data, size_t(size));
+    if (!img.isValid())
+    {
+        // no logo file: the name as text
+        img = juce::Image(juce::Image::ARGB, 1024, 256, true);
+        juce::Graphics g(img);
+        g.setColour(juce::Colours::white);
+        g.setFont(juce::Font(juce::FontOptions(150.0f, juce::Font::bold)));
+        g.drawText("DALI AUDIO", img.getBounds(), juce::Justification::centred);
+    }
+    img = img.convertedToFormat(juce::Image::ARGB);
+    const int w = img.getWidth(), h = img.getHeight();
+    std::vector<juce::uint8> pixels(size_t(w) * size_t(h) * 4);
+    {
+        const juce::Image::BitmapData bd(img, juce::Image::BitmapData::readOnly);
+        for (int y = 0; y < h; ++y)
+            std::memcpy(pixels.data() + size_t(y) * size_t(w) * 4, bd.getLinePointer(y), size_t(w) * 4);   // BGRA, premultiplied
+    }
+    logoAspect = float(w) / float(juce::jmax(1, h));
+    glGenTextures(1, &logoTex);
+    glBindTexture(GL_TEXTURE_2D, logoTex);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE, pixels.data());
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void RenderEngine::drawWatermark(int x, int y, int w, int h, bool recording)
+{
+    if (!License::showsWatermark() || logoTex == 0 || !watermarkShader.isValid() || w < 16 || h < 16) return;
+
+    auto drawLogo = [&](int lx, int ly, int lw, int lh, float alpha)
+    {
+        glViewport(x + lx, y + ly, lw, lh);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        watermarkShader.use();
+        watermarkShader.set("uLogo", 0);
+        watermarkShader.set("uAlpha", alpha);
+        bindTexture(0, logoTex);
+        drawFullscreen();
+        glDisable(GL_BLEND);
+        glViewport(x, y, w, h);
+    };
+
+    if (recording)
+    {
+        // videos made with the demo / trial always carry a small logo in the corner as well
+        int bw = juce::roundToInt(w * 0.16f), bh = juce::roundToInt(float(bw) / logoAspect);
+        if (bh > h / 8) { bh = h / 8; bw = juce::roundToInt(float(bh) * logoAspect); }
+        drawLogo(w - bw - juce::roundToInt(w * 0.025f), juce::roundToInt(h * 0.03f), bw, bh, 0.7f);
+    }
+
+    // every 12 s, 3.2 s on screen (fading in and out), at a different spot each time
+    const double t = juce::Time::getMillisecondCounterHiRes() * 0.001;
+    constexpr double period = 12.0, shown = 3.2, fade = 0.45;
+    const double phase = std::fmod(t, period);
+    if (phase > shown) return;
+    const float alpha = 0.9f * float(juce::jmin(1.0, phase / fade, (shown - phase) / fade));
+    const int spot = int(std::fmod(t / period, 5.0));
+
+    int lw = juce::roundToInt(w * 0.3f), lh = juce::roundToInt(float(lw) / logoAspect);
+    if (lh > h / 4) { lh = h / 4; lw = juce::roundToInt(float(lh) * logoAspect); }
+    const int mx = juce::roundToInt(w * 0.05f), my = juce::roundToInt(h * 0.07f);
+    int lx = (w - lw) / 2, ly = (h - lh) / 2;                                  // 0: centre
+    if (spot == 1) { lx = mx;          ly = h - lh - my; }                     // top left (GL: y up)
+    if (spot == 2) { lx = w - lw - mx; ly = h - lh - my; }                     // top right
+    if (spot == 3) { lx = w - lw - mx; ly = my; }                              // bottom right
+    if (spot == 4) { lx = mx;          ly = my; }                              // bottom left
+
+    drawLogo(lx, ly, lw, lh, alpha);
+}
+
 void RenderEngine::setCommon(Shader& s, int w, int h)
 {
     s.use();
@@ -568,6 +669,8 @@ void RenderEngine::renderOpenGL()
     }
     else if (!isPreview || !outputActive) state.telemetry.quality = shaderQuality;
     // (the preview window is small: rendering it at full quality costs little, and it must match the output)
+    const bool imageAllowed = License::allows(Feature::Image);               // DEMO lock
+
     // RECORDING: the engine that publishes the output also renders the video frames. The preview then
     // renders the recording's own frame (its size and aspect, shown letterboxed) - what you see is what
     // is recorded, at full recording resolution; the live output keeps its screen and is cropped to fill.
@@ -612,7 +715,7 @@ void RenderEngine::renderOpenGL()
     glDisable(GL_SCISSOR_TEST);
 
     // ---- 1. scene (+ crossfade on change) ----------------------------------------------------
-    const int sceneIndex = juce::jlimit(0, int(scenes.size()) - 1, choice(pScene));
+    const int sceneIndex = License::nearestAllowedScene(juce::jlimit(0, int(scenes.size()) - 1, choice(pScene)));   // DEMO lock
     if (sceneIndex != currentScene)
     {
         if (currentScene >= 0 && currentScene != sceneIndex) { fadeFromScene = currentScene; fadeAmount = 0.0f; }
@@ -649,7 +752,7 @@ void RenderEngine::renderOpenGL()
     }
 
     // ---- 2. image template layer ------------------------------------------------------------------
-    if (hasImage && flag(pTplEnable) && currentScene != kImageSceneIndex && templateLayer.isValid() && templateComposite.isValid())
+    if (hasImage && imageAllowed && flag(pTplEnable) && currentScene != kImageSceneIndex && templateLayer.isValid() && templateComposite.isValid())
     {
         if (templateHistory.ensure(w, h)) templateHistory.clear();
         templateHistory.current().bind();
@@ -769,7 +872,8 @@ void RenderEngine::renderOpenGL()
     if (role == Role::Output) { state.telemetry.outSurfaceW = screenW; state.telemetry.outSurfaceH = screenH;
                                 state.telemetry.outRenderW = w; state.telemetry.outRenderH = h; }
     if (recordingHere)
-        recordCapture.process(*recorder, recW, recH, w, h, [&](int vw, int vh) { runOutput(vw, vh); });
+        recordCapture.process(*recorder, recW, recH, w, h, [&](int vw, int vh) { runOutput(vw, vh); },
+                              [&](int fw, int fh) { drawWatermark(0, 0, fw, fh, true); });
     else if (recordCapture.isAllocated())
         recordCapture.release();
 
@@ -785,9 +889,13 @@ void RenderEngine::renderOpenGL()
         if (vh > screenH) { vh = screenH; vw = juce::roundToInt(screenH * a); }
         glViewport((screenW - vw) / 2, (screenH - vh) / 2, vw, vh);
         runOutput(vw, vh);
+        drawWatermark((screenW - vw) / 2, (screenH - vh) / 2, vw, vh);
     }
     else
+    {
         runOutput(screenW, screenH);
+        drawWatermark(0, 0, screenW, screenH);
+    }
 
     bindTexture(0, src);                                  // other passes sample it at level 0 only
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
