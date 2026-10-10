@@ -178,6 +178,7 @@ juce::Array<OutputManager::DisplayInfo> OutputManager::getDisplays()
 
 void OutputManager::open(int displayIndex)
 {
+    if (window == nullptr && allowOpen && !allowOpen()) return;
     const auto displays = getDisplays();
     if (displays.isEmpty()) return;
     if (displayIndex < 0) displayIndex = state.output.displayIndex.load();

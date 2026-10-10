@@ -23,6 +23,8 @@ public:
 
     /** Message thread. index -1 = the stored choice, falling back to the last (usually external) display. */
     void open(int displayIndex = -1);
+    /** Asked before the output opens (DEMO lock). Empty = always allowed. */
+    std::function<bool()> allowOpen;
     void close();
     void toggle() { isOpen() ? close() : open(); }
 
