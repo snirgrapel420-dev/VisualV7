@@ -86,7 +86,8 @@ void RecordCapture::collect(VideoRecorder& rec, bool waitForOldest)
 }
 
 void RecordCapture::process(VideoRecorder& rec, int frameW, int frameH, int srcW, int srcH,
-                            const std::function<void(int, int)>& drawOutput)
+                            const std::function<void(int, int)>& drawOutput,
+                            const std::function<void(int, int)>& drawOverlay)
 {
     if (!ensure(frameW, frameH)) return;
     collect(rec, false);
@@ -110,6 +111,11 @@ void RecordCapture::process(VideoRecorder& rec, int frameW, int frameH, int srcW
     else                       vh = juce::roundToInt(width / srcAspect);
     glViewport((width - vw) / 2, (height - vh) / 2, vw, vh);
     drawOutput(vw, vh);
+    if (drawOverlay)
+    {
+        glViewport(0, 0, width, height);
+        drawOverlay(width, height);
+    }
 
     // 2. flip on the GPU (video frames are top-down), then 3. start the asynchronous read-back
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fboA);
