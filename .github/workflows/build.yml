@@ -103,7 +103,7 @@ jobs:
           -DFETCHCONTENT_BASE_DIR="${{ github.workspace }}/.deps"
           ${{ matrix.cmake_args }}
 
-      - name: Build (VST3 + AZ + Standalone)
+      - name: Build (VST3 + AU + Standalone)
         shell: bash
         run: |
           set -o pipefail
