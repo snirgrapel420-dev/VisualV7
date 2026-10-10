@@ -364,6 +364,7 @@ void VideoRecorder::run()
     const bool opened = encoder != nullptr && encoder->open(file.getFullPathName().toRawUTF8(), es, err);
 
     std::int64_t nextSlot = 0, audioPos = 0;
+    bool limitHit = false;
     std::uint8_t* last = nullptr;
     std::vector<std::pair<std::uint8_t*, std::int64_t>> batch;
     std::vector<float> in(2048 * 2), out;
@@ -383,6 +384,11 @@ void VideoRecorder::run()
 
     while (opened)
     {
+        if (current.maxSeconds > 0.0 && recording.load() && nowSeconds() - startTime.load() >= current.maxSeconds)
+        {
+            limitHit = true;
+            stop();                                                  // the demo's time limit
+        }
         const bool stopping = !recording.load();
 
         // ---- video: constant frame rate -------------------------------------------------------------
@@ -449,6 +455,7 @@ void VideoRecorder::run()
         std::string finishError;
         const bool ok = encoder->finish(finishError);
         result.seconds = double(audioPos) / outRate;
+        result.limitReached = limitHit;
         result.ok = ok && last != nullptr;
         if (!ok) result.error = finishError.empty() ? juce::String("The video file could not be finished.") : juce::String(finishError.c_str());
         else if (last == nullptr) result.error = "No picture was captured.";
