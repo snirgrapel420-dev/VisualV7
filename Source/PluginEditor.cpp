@@ -32,6 +32,10 @@ DaliVisualEditor::DaliVisualEditor(DaliVisualProcessor& p)
     setResizable(true, true);
     setResizeLimits(1200, 700, 3840, 2160);
     setSize(1440, 860);
+
+    // DEMO / TRIAL: the serial + free-trial window, once the editor is on screen
+    juce::Component::SafePointer<DaliVisualEditor> safe(this);
+    juce::Timer::callAfterDelay(700, [safe] { if (safe != nullptr && safe->isShowing()) dali::showLaunchLicenseDialog(safe->proc); });
 }
 
 DaliVisualEditor::~DaliVisualEditor()
@@ -103,6 +107,7 @@ bool DaliVisualEditor::isInterestedInFileDrag(const juce::StringArray& files)
 
 void DaliVisualEditor::filesDropped(const juce::StringArray& files, int, int)
 {
+    if (!proc.requireFeature(dali::Feature::Image)) return;
     for (auto& path : files)
     {
         const juce::File f(path);
