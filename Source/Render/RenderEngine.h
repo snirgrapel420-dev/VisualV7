@@ -90,7 +90,13 @@ private:
     Shader templateLayer, templateComposite, outputShader, crossfade;
     PingPong templateHistory;
     RenderTarget composite, fadeTarget, fxA, fxB, finalTarget;
-    RecordCapture recordCapture;                     // video recording (this engine publishes the output)
+    RecordCapture recordCapture;
+    // DEMO watermark: the DALI AUDIO logo (Resources/watermark.png) fades in every few seconds
+    Shader watermarkShader;
+    unsigned int logoTex = 0;
+    float logoAspect = 4.0f;
+    void createWatermark();
+    void drawWatermark(int x, int y, int w, int h, bool recording = false);                     // video recording (this engine publishes the output)
     unsigned int dnaTex = 0, colorTex = 0, flowTex = 0, spectrumTex = 0;
     std::array<std::array<float, 3>, 4> imgPalette {};
     std::array<float, 256> spectrumData {};              // 128 x 2 (spectrum row, waveform row)
