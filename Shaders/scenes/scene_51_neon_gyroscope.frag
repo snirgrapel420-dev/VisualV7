@@ -1,12 +1,13 @@
-// NEON GYROSCOPE — 3D: nested neon rings turning around a black mirror core, crossed by great beams of light.
+// NEON LASER CORE — 3D: nested rings turning around a black mirror core inside a smoky laser show: fans of
+// laser beams sweep out of the core through drifting haze. (Identity: club lasers — green / violet.)
 //
 // Self-driving: every part is automated from the music.
 //   bass          the camera breathes in and out
-//   kick          the rings punch outward, the beams flare
+//   kick          the rings punch outward, the laser fans fire
 //   snare         a ring flips a quarter turn
 //   hi-hat        the lamps on the rings sparkle
 //   mids          the rings' rotation
-//   highs         light runs along the dashed grooves
+//   highs         light runs along the dashed grooves, the haze glitters
 //   BUILD         the rings align into one plane: a portal
 //   PEAK          more rings, everything blazes
 //   CHAOS         the rings tumble on wild axes
@@ -17,9 +18,10 @@ vec3 C0, C1, C2, C3;
 void setPalette()
 {
     vec3 w = familyWeights(colourFamily(uMacro.w));
-    vec3 a0 = hex(1310740.0),  a1 = hex(16722902.0), a2 = hex(16758062.0), a3 = hex(16772567.0);
-    vec3 b0 = hex(1311748.0),  b1 = hex(16727182.0), b2 = hex(16761402.0), b3 = hex(12579071.0);
-    vec3 c0 = hex(393246.0),   c1 = hex(9063935.0),  c2 = hex(3073791.0),  c3 = hex(2976767.0);
+    // A: laser green · lime white · violet     B: red · white · green (RGB lasers)     C: blue · cyan white · cyan
+    vec3 a0 = hex(264708.0),  a1 = hex(2883402.0),  a2 = hex(14221232.0), a3 = hex(10107903.0);
+    vec3 b0 = hex(786948.0),  b1 = hex(16719406.0), b2 = hex(16777215.0), b3 = hex(2162528.0);
+    vec3 c0 = hex(132634.0),  c1 = hex(3103743.0),  c2 = hex(13629695.0), c3 = hex(1632511.0);
     C0 = a0 * w.x + b0 * w.y + c0 * w.z; C1 = a1 * w.x + b1 * w.y + c1 * w.z;
     C2 = a2 * w.x + b2 * w.y + c2 * w.z; C3 = a3 * w.x + b3 * w.y + c3 * w.z;
 }
@@ -84,6 +86,13 @@ float beamGlow(vec3 ro, vec3 rd, vec3 a, vec3 b, float tMax)
     float sb = clamp(ee + bb * tr, 0.0, length(b - a));
     float dist = length(ro + rd * tr - (a + u * sb));
     return 0.0016 / (0.00012 + dist * dist);
+}
+
+// drifting club haze: the lasers light it up where they pass
+float haze(vec3 ro, vec3 rd)
+{
+    vec2 q = rd.xy / (1.0 + abs(rd.z)) * 2.0 + vec2(rd.z, 0.0);
+    return fbm(q * 2.2 + vec2(uTime * 0.04, -uTime * 0.03), 5);
 }
 
 vec3 normalAt(vec3 p)
@@ -152,17 +161,33 @@ void main()
         else col += C0 * 0.3 + C2 * 0.12 * clamp(dot(n, key), 0.0, 1.0) + refl * (0.3 + 0.7 * fres) + spec * 0.5;
         col += emitCol(id) * 3.0 * (1.0 - smoothstep(0.0, 0.025, em));
     }
-    // two great beams crossing through the core (an X), drawn analytically
+    // laser fans sweeping out of the core through the haze, drawn analytically (thin, sharp beams)
     {
         float tm = hit ? t : 30.0;
-        vec3 bc = mix(C1, C3, 0.3) * (0.5 + 0.9 * uKick + 0.4 * peak) * glowK;
-        col += bc * beamGlow(ro, rd, vec3(-4.0, -2.6, 0.0) * gPunch, vec3(4.0, 2.6, 0.0) * gPunch, tm);
-        col += bc * beamGlow(ro, rd, vec3(-4.0, 2.6, 0.0) * gPunch, vec3(4.0, -2.6, 0.0) * gPunch, tm);
-        col += C2 * 0.6 * glowK * beamGlow(ro, rd, vec3(0.0, -3.5, 0.0), vec3(0.0, 3.5, 0.0), tm) * (0.4 + uHigh);
+        float hz = haze(ro, rd);
+        float smoke = 0.35 + 1.3 * smoothstep(0.3, 0.8, hz);
+        int nb = 6 + int(4.0 * peak + 2.0 * uMacro.y);
+        float sweep = uMidTime * (0.25 + 0.4 * uMacro.z) + 0.6 * sin(uBarPhase * TAU);
+        float fanTilt = 0.35 * sin(uBassTime * 0.05) + gChaos * sin(uHighTime * 0.7);
+        float fire = 0.35 + 1.2 * uKick + 0.5 * peak;
+        for (int i = 0; i < 10; i++)
+        {
+            if (i >= nb) break;
+            float fi = float(i);
+            float ang = (fi / float(nb) - 0.5) * (1.6 + 0.8 * build) + 0.35 * sin(sweep + fi * 0.4);
+            vec3 dir = normalize(vec3(sin(ang), cos(ang), 0.35 * sin(sweep * 1.3 + fi)));
+            dir.yz *= rot(fanTilt);
+            vec3 bcol = mod(fi, 2.0) < 0.5 ? C1 : C3;
+            vec3 dn = vec3(dir.x, -dir.y, dir.z);
+            col += bcol * fire * smoke * 0.4 * glowK * beamGlow(ro, rd, dir * 0.45, dir * 14.0, tm);
+            col += bcol * fire * smoke * 0.2 * glowK * beamGlow(ro, rd, dn * 0.45, dn * 14.0, tm);
+        }
+        col += C2 * 0.5 * glowK * beamGlow(ro, rd, vec3(0.0, -3.5, 0.0), vec3(0.0, 3.5, 0.0), tm) * (0.4 + uHigh);
+        col += mix(C1, C3, hz) * 0.06 * smoke * (0.4 + 0.6 * uKick + 0.4 * peak);       // the haze itself
     }
     // the portal plane on BUILD and a dark nebula behind
     col += C1 * gAlign * 0.18 * exp(-abs(uv.y) * 10.0);
-    col += C0 * 0.7 * (1.0 - smoothstep(0.0, 1.3, length(uv)));
+    col += C0 * 0.5 * (1.0 - smoothstep(0.0, 1.3, length(uv)));
 
     col *= (1.0 + 0.3 * peak) * (1.0 - 0.15 * calm);
     col *= uIntensity * mix(0.6, 1.0, uActivity);

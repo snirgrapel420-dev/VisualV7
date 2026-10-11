@@ -1,10 +1,11 @@
-// NEON HELIX TOWER — 3D: a twisting tower of neon bars rising past the camera, mirrored left and right.
+// NEON ICE TOWER — 3D: a twisting tower of ice-blue crystal light bars rising through a frozen night,
+// mirrored left and right, with glittering ice dust drifting past. (Identity: cold — cyan / ice / electric blue.)
 //
 // Self-driving: every part is automated from the music.
 //   bass          the tower rises past the camera with the bass
 //   kick          every bar shoots out wider and flares
 //   snare         every second bar flashes white
-//   hi-hat        the golden lamps on the spine sparkle
+//   hi-hat        the lamps on the spine and the ice dust sparkle
 //   mids          the twist turns; the camera orbits
 //   highs         light runs along the bars
 //   BUILD         the twist winds tighter and faster
@@ -17,9 +18,10 @@ vec3 C0, C1, C2, C3;
 void setPalette()
 {
     vec3 w = familyWeights(colourFamily(uMacro.w));
-    vec3 a0 = hex(1310740.0),  a1 = hex(16722902.0), a2 = hex(16769214.0), a3 = hex(16758062.0);
-    vec3 b0 = hex(1311748.0),  b1 = hex(16727182.0), b2 = hex(16772567.0), b3 = hex(16761402.0);
-    vec3 c0 = hex(393246.0),   c1 = hex(9063935.0),  c2 = hex(12579071.0), c3 = hex(3073791.0);
+    // A: cyan · ice white · electric blue     B: aqua · mint · teal     C: violet-blue · white · sky cyan
+    vec3 a0 = hex(133658.0),  a1 = hex(58879.0),    a2 = hex(14677759.0), a3 = hex(2780159.0);
+    vec3 b0 = hex(136210.0),  b1 = hex(65480.0),    b2 = hex(14745588.0), b3 = hex(43189.0);
+    vec3 c0 = hex(525854.0),  c1 = hex(6970623.0),  c2 = hex(15789823.0), c3 = hex(4182271.0);
     C0 = a0 * w.x + b0 * w.y + c0 * w.z; C1 = a1 * w.x + b1 * w.y + c1 * w.z;
     C2 = a2 * w.x + b2 * w.y + c2 * w.z; C3 = a3 * w.x + b3 * w.y + c3 * w.z;
 }
@@ -72,6 +74,25 @@ float map(vec3 p)
     return d;
 }
 
+// glittering ice dust drifting down past the tower (screen-space, three depth layers)
+vec3 iceDust(vec2 uv, float rise)
+{
+    vec3 c = vec3(0.0);
+    for (int l = 0; l < 3; l++)
+    {
+        float fl = float(l);
+        float sc = 7.0 + 6.0 * fl;
+        vec2 g = uv * sc + vec2(0.3 * fl, rise * (0.6 + 0.5 * fl) * 3.0 + uTime * (0.15 + 0.1 * fl));
+        vec2 id = floor(g), f = fract(g) - 0.5;
+        vec2 o = hash22(id + fl * 17.0) - 0.5;
+        float d = length(f - o * 0.7);
+        float tw = 0.4 + 0.6 * sin(uHighTime * 3.0 + hash12(id) * 40.0);
+        float on = step(0.55, hash12(id * 1.7 + fl));
+        c += mix(C2, C1, hash12(id + 3.0)) * on * tw * (0.004 / (0.0015 + d * d)) * (0.04 + 0.02 * fl);
+    }
+    return c * (0.6 + 1.6 * uHat);
+}
+
 vec3 emitCol()
 {
     if (gEmId > 4.5) return C3 * 1.5 * (1.0 + 2.0 * uHat + uKick);
@@ -100,7 +121,7 @@ vec3 march(vec3 ro, vec3 rd, int steps, float far, out float t, out bool hit, fl
         vec3 p = ro + rd * t;
         float d = map(p);
         float h = clamp(d * 0.8, 0.01, 0.3);
-        glow += emitCol() * (glowK * 0.0006 / (0.0003 + gEm * gEm)) * h;
+        glow += emitCol() * (glowK * 0.00042 / (0.0003 + gEm * gEm)) * h;
         if (d < hitEps(t)) { hit = true; break; }
         t += h;
         if (t > far) break;
@@ -142,10 +163,13 @@ void main()
         float fres = pow(1.0 - clamp(dot(-rd, n), 0.0, 1.0), 3.0);
         col += ec * (0.8 + 0.9 * core) + mix(C1, C2, 0.5) * fres * 0.4;
     }
-    // the space around the tower: a faint mirrored backdrop glow and depth haze
-    col += C0 * 0.6 * (1.0 - smoothstep(0.0, 1.2, length(uv)));
-    col += mix(C1, C2, 0.4) * 0.08 * (1.0 - exp(-0.08 * t)) * (0.5 + peak);
-
+    // a frozen night around the tower: a cold vertical gradient, an aurora band and drifting ice dust
+    vec3 sky = mix(C0 * 1.2, C3 * 0.07 + C0, smoothstep(-0.6, 0.7, uv.y));
+    float aur = fbm(vec2(uv.x * 1.6 + uMidTime * 0.03, uv.y * 0.6 - uTime * 0.02), 4);
+    sky += mix(C1, C3, aur) * 0.08 * smoothstep(0.35, 0.8, aur) * smoothstep(-0.1, 0.5, uv.y) * (0.6 + 0.8 * build);
+    col += sky * (hit ? 0.2 : 0.8);
+    col += iceDust(uv, rise) * (hit ? 0.3 : 1.0);
+    col += C3 * 0.03 * (1.0 - exp(-0.08 * t)) * (0.5 + peak);
     col *= (1.0 + 0.3 * peak) * (1.0 - 0.15 * calm);
     col *= uIntensity * mix(0.6, 1.0, uActivity);
     fragColor = vec4(safeHDR(col), 1.0);

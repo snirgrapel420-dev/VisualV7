@@ -15,6 +15,10 @@ C++17 · JUCE 8 · CMake · OpenGL 3.2 core / GLSL 150.
   Bloom מנורמל לרזולוציה, Sharpness, ורינדור 150%/200% (supersampling). סצנות חדשות: Mandelbulb Bloom, Fourth Dimension.
 * **v5.2:** 13 סצנות תלת-ממדיות + Image Reactor. חדשות: Mandelbox Temple, Crystal Sanctum, Menger Void, Quaternion Julia,
   Fractal Ocean, Dimension Gate.
+* **v7.2:** **לכל אחת מסצנות הניאון 21–25 זהות משלה** (אותו כיוון ניאון תלת-ממדי, חמישה עולמות שונים):
+  21 NEON NAVE (מסדרון מג'נטה/זהב) · 22 NEON ICE TOWER (מגדל קרח: ציאן/כחול, אבק קרח וזוהר צפוני) ·
+  23 NEON SUNSET DRIVE (סינת'ווייב: מכונית על גריד אינסופי לעבר שמש מפוספסת והרי ניאון) ·
+  24 NEON LIQUID GOLD (גלי זהב מותך, גחלים עולות) · 25 NEON LASER CORE (מופע לייזרים במועדון: מניפות לייזר בעשן).
 * **v7.1:** **סצנות 21–25 נבנו מחדש בתלת-ממד אמיתי** (raymarching, משטחים מבריקים, פסי ניאון פולטי אור, החזרות, מרחב ממוראה):
   21 Neon Nave (טיסה באולם מראות עם צלעות, פסי ניאון ומנורות זהב; BUILD מפתל אותו לספירלה) · 22 Neon Helix Tower (מגדל
   פסי ניאון מסתובב סביב עמוד זהב) · 23 Neon Machine (מכונה/רכב ניאון על רצפת מראה, מצולם וממוראה כמו קליידוסקופ) ·
