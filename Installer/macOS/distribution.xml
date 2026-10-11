@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+    <title>Dali Visual @VERSION@</title>
+    <organization>com.daliaudio</organization>
+    <welcome file="welcome.html" mime-type="text/html"/>
+    <conclusion file="conclusion.html" mime-type="text/html"/>
+    <options customize="allow" require-scripts="false" rootVolumeOnly="true" hostArchitectures="arm64,x86_64"/>
+    <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
+    <os-version min="10.13"/>
+
+    <choices-outline>
+        <line choice="au"/>
+        <line choice="vst3"/>
+        <line choice="app"/>
+    </choices-outline>
+
+    <choice id="au" title="Audio Unit (AU) plug-in"
+            description="For Logic Pro, GarageBand, Ableton Live and other AU hosts. Installed to /Library/Audio/Plug-Ins/Components.">
+        <pkg-ref id="com.daliaudio.dalivisual.au"/>
+    </choice>
+    <choice id="vst3" title="VST3 plug-in"
+            description="For Ableton Live, FL Studio, Cubase, Bitwig, Reaper and other VST3 hosts. Installed to /Library/Audio/Plug-Ins/VST3.">
+        <pkg-ref id="com.daliaudio.dalivisual.vst3"/>
+    </choice>
+    <choice id="app" title="Standalone application"
+            description="Dali Visual as its own app, without a DAW. Installed to /Applications.">
+        <pkg-ref id="com.daliaudio.dalivisual.app"/>
+    </choice>
+
+    <pkg-ref id="com.daliaudio.dalivisual.au"   version="@VERSION@" onConclusion="none">DaliVisual-au.pkg</pkg-ref>
+    <pkg-ref id="com.daliaudio.dalivisual.vst3" version="@VERSION@" onConclusion="none">DaliVisual-vst3.pkg</pkg-ref>
+    <pkg-ref id="com.daliaudio.dalivisual.app"  version="@VERSION@" onConclusion="none">DaliVisual-app.pkg</pkg-ref>
+</installer-gui-script>

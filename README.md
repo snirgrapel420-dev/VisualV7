@@ -15,6 +15,10 @@ C++17 · JUCE 8 · CMake · OpenGL 3.2 core / GLSL 150.
   Bloom מנורמל לרזולוציה, Sharpness, ורינדור 150%/200% (supersampling). סצנות חדשות: Mandelbulb Bloom, Fourth Dimension.
 * **v5.2:** 13 סצנות תלת-ממדיות + Image Reactor. חדשות: Mandelbox Temple, Crystal Sanctum, Menger Void, Quaternion Julia,
   Fractal Ocean, Dimension Gate.
+* **v7.3:** **מתקינים אמיתיים** (נבנים אוטומטית ב-CI, בתיקיית `Installer/`):
+  Windows — `DaliVisual-<גרסה>-Windows-Setup.exe` (Inno Setup): VST3 ל-`C:\Program Files\Common Files\VST3`, האפליקציה ל-`Program Files\Dali Audio`,
+  קיצור בתפריט התחל ובשולחן העבודה, מסיר התקנה ב"אפליקציות". macOS — `DaliVisual-<גרסה>-macOS-Installer.pkg`: AU, VST3 ו-Standalone
+  למקומות הנכונים, עם אפשרות לבחור רכיבים, ובלי פקודות Terminal (קבצים שמותקנים ע"י ה-Installer לא נחסמים בהסגר).
 * **v7.2:** **לכל אחת מסצנות הניאון 21–25 זהות משלה** (אותו כיוון ניאון תלת-ממדי, חמישה עולמות שונים):
   21 NEON NAVE (מסדרון מג'נטה/זהב) · 22 NEON ICE TOWER (מגדל קרח: ציאן/כחול, אבק קרח וזוהר צפוני) ·
   23 NEON SUNSET DRIVE (סינת'ווייב: מכונית על גריד אינסופי לעבר שמש מפוספסת והרי ניאון) ·

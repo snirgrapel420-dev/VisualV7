@@ -1,0 +1,4 @@
+#!/bin/bash
+# refresh the Audio Unit cache so Logic / GarageBand / Ableton see the new version straight away
+killall -9 AudioComponentRegistrar >/dev/null 2>&1 || true
+exit 0
