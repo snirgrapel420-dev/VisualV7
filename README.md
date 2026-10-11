@@ -1,4 +1,4 @@
-# DALI VISUAL 6 — by DALI AUDIO
+# DALI VISUAL 7 — by DALI AUDIO
 
 Audio-reactive generative visual instrument. **VST3 + AU (macOS) + Standalone**, one shared engine.
 C++17 · JUCE 8 · CMake · OpenGL 3.2 core / GLSL 150.
@@ -15,6 +15,11 @@ C++17 · JUCE 8 · CMake · OpenGL 3.2 core / GLSL 150.
   Bloom מנורמל לרזולוציה, Sharpness, ורינדור 150%/200% (supersampling). סצנות חדשות: Mandelbulb Bloom, Fourth Dimension.
 * **v5.2:** 13 סצנות תלת-ממדיות + Image Reactor. חדשות: Mandelbox Temple, Crystal Sanctum, Menger Void, Quaternion Julia,
   Fractal Ocean, Dimension Gate.
+* **v7.0:** **5 סצנות NEON חדשות (21–25)** בהשראת סגנון הניאון הסימטרי: צינורות ניאון עם ליבה לבנה והילה צבעונית, מראה כפולה
+  (ימין-שמאל ולמעלה-למטה) ומשפחות צבע ורוד/זהב · ורוד חם/ענבר · סגול/ציאן. 21 Neon Mandala (שכבות מנדלה שעולות מהמרכז, BUILD
+  מכפיל את הסימטריה) · 22 Neon Helix (מגדל פסי ניאון מסתובב, PEAK מוסיף סליל שני) · 23 Neon Chevron Tunnel (טיסה במנהרת יהלומים
+  ושברונים) · 24 Neon Liquid (ניאון נמס כמו זכוכית חמה, עם פיצול כרומטי) · 25 Neon Wireframe (גופים תלת-ממדיים בקווי ניאון).
+  לכל סצנה init, ניתובי תפקידים ב-MOD ותמונה ממוזערת משלה. Image Reactor נשאר סצנה 20 (פרויקטים שמורים לא משתנים).
 * **v6.9:** **ניסיון חינם ל-7 ימים + REC בדמו.** בפתיחה (כשאין סריאל) נפתח חלון: הכנסת סריאל / "Start 7-Day Free Trial" /
   Buy / המשך בדמו. בניסיון הכל פתוח, אבל לוגו DALI AUDIO ממשיך לצוץ על המסך (וגם בהקלטות). הניסיון פעם אחת למחשב; הרשומה
   חתומה ושמורה בשני מקומות – עריכה ידנית או החזרת שעון המחשב לאחור מסיימות אותו. אחרי 7 ימים – מצב דמו. בכפתור העליון:

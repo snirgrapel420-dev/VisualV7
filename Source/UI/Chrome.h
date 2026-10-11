@@ -108,7 +108,7 @@ private:
     juce::Label displayLabel, resolutionLabel, sourceLabel, sourceStatus, midiLast, info;
     juce::ToggleButton vsync { "V-Sync (lock to the display refresh rate)" },
                        previewWhileOutput { "Keep the preview running while live" },
-                       noteScenes { "Notes C1-G2 select scenes 1-20" },
+                       noteScenes { "Notes C1-C3 select scenes 1-25" },
                        programScenes { "Program Change selects scenes" };
     juce::TextButton identify { "Identify Displays" }, openOutput { "GO LIVE" },
                      clearMidi { "Clear all MIDI mappings" }, resetAll { "Reset Everything" }, licenseBtn { "License..." };

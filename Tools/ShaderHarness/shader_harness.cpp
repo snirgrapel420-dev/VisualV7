@@ -477,7 +477,7 @@ int main(int argc, char** argv)
         Target* cur = &a; Target* prev = &b;
         glBindFramebuffer(GL_FRAMEBUFFER, a.fbo); glClear(GL_COLOR_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, b.fbo); glClear(GL_COLOR_BUFFER_BIT);
-        float macro[4] = { 0.5f, 0.55f, 0.6f, std::getenv("DALI_MD") ? float(std::atof(std::getenv("DALI_MD"))) : 0.0f };
+        float macro[4] = { std::getenv("DALI_MA") ? float(std::atof(std::getenv("DALI_MA"))) : 0.5f, 0.55f, 0.6f, std::getenv("DALI_MD") ? float(std::atof(std::getenv("DALI_MD"))) : 0.0f };
         float t = 0; Audio au{};
         for (int f = 0; f < frames; ++f)
         {

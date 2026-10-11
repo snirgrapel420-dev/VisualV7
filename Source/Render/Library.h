@@ -1,6 +1,6 @@
 #pragma once
 // ============================================================================
-//  Library — static descriptions of the 8 scenes and 20 effects.
+//  Library — static descriptions of the 25 scenes and 20 effects.
 //  Pure data (no JUCE / GL) so parameters, UI, engine and tools share it.
 // ============================================================================
 #include <array>
@@ -16,16 +16,16 @@ struct SceneInfo
     const char* description;
 };
 
-inline const std::array<SceneInfo, 20>& sceneLibrary();
+inline const std::array<SceneInfo, 25>& sceneLibrary();
 
 /** Index of the Image Reactor scene (the scene that renders the loaded image itself). */
 constexpr int kImageSceneIndex = 19;
 
 // The scenes are self-driving: every moving part is automated from the music inside the scene
 // (camera, geometry, light, colour evolution with the musical state). The macros only set character.
-inline const std::array<SceneInfo, 20>& sceneLibrary()
+inline const std::array<SceneInfo, 25>& sceneLibrary()
 {
-    static const std::array<SceneInfo, 20> s { {
+    static const std::array<SceneInfo, 25> s { {
         { "kali",     "01  KALI CATHEDRAL",    "scene_09_kali_cathedral_frag",    { "Fold Twist", "Complexity", "Flight Speed", "Glow" },
           "Flight through a raymarched fractal cathedral. Bass flies you forward, kicks ignite the walls, snares twist the folds, the light and colour evolve with the music." },
         { "tidal",    "02  TIDAL CATHEDRAL",   "scene_19_tidal_cathedral_frag",   { "Architecture", "Caustics", "Drift Speed", "Colour Family" },
@@ -66,6 +66,17 @@ inline const std::array<SceneInfo, 20>& sceneLibrary()
           "A dimension machine: nested rings turning around a living core. The build aligns the rings into a portal; the kick makes them expand." },
         { "image",    "20  IMAGE REACTOR",     "scene_17_image_reactor_frag",     { "Motion", "Reactivity", "Zoom", "Trails" },
           "Your own image becomes the visual: its structure, colours and contours drive generative modes (Flow Lines, Flow Paint, Pulse, ...), moved by the sound itself." },
+        // ---- NEON: mirrored neon line art (v7) ----
+        { "neonmandala", "21  NEON MANDALA",  "scene_47_neon_mandala_frag",        { "Symmetry", "Glow", "Zoom Speed", "Colour Family" },
+          "Mirrored neon line art rising out of the centre, layer after layer. The kick punches it outward, the snare flashes the chevrons, the build multiplies the symmetry." },
+        { "neonhelix",   "22  NEON HELIX",    "scene_48_neon_helix_frag",          { "Strands", "Glow", "Scroll Speed", "Colour Family" },
+          "A tower of neon bars twisting around an invisible axis, mirrored both ways. The kick shoots the bars wide, the mids melt them, the peak adds a second strand." },
+        { "neontunnel",  "23  NEON CHEVRON TUNNEL", "scene_49_neon_chevron_tunnel_frag", { "Frame Shape", "Glow", "Flight Speed", "Colour Family" },
+          "Flying down a tunnel of neon diamonds, chevrons and brackets. The bass is the speed, the kick flares the rails, the snare flashes the diamonds." },
+        { "neonliquid",  "24  NEON LIQUID",   "scene_50_neon_liquid_frag",         { "Melt", "Glow", "Flow Speed", "Colour Family" },
+          "Mirrored neon strokes melting like hot glass, with a chromatic split. The build melts them further, the kick sends a shock wave through the glass." },
+        { "neonwire",    "25  NEON WIREFRAME", "scene_51_neon_wireframe_frag",     { "Symmetry", "Glow", "Spin Speed", "Colour Family" },
+          "Glowing 3D wireframe solids turning in space, mirrored into a symmetric sculpture. The build unfolds more shells, the kick punches them outward." },
     } };
     return s;
 }
@@ -97,6 +108,12 @@ inline const SceneInit& sceneInit(int index)
         /* 18 Sierpinski  */ { 0.50f, 0.60f, 0.40f, 0.00f, 0.55f, 0.90f, 0.45f, 0.55f, 0.60f },
         /* 19 Torus       */ { 0.60f, 0.60f, 0.50f, 0.00f, 0.50f, 0.90f, 0.55f, 0.60f, 0.55f },
         /* 20 Image       */ { 0.50f, 0.50f, 0.50f, 0.50f, 0.30f, 0.90f, 0.50f, 0.30f, 0.50f },
+        // the neon scenes: little trip (they carry their own symmetry), more bloom for the tubes
+        /* 21 Neon Mandala*/ { 0.10f, 0.55f, 0.45f, 0.00f, 0.15f, 0.90f, 0.50f, 0.65f, 0.55f },
+        /* 22 Neon Helix  */ { 0.10f, 0.55f, 0.45f, 0.00f, 0.10f, 0.90f, 0.50f, 0.65f, 0.60f },
+        /* 23 Neon Tunnel */ { 0.15f, 0.55f, 0.50f, 0.00f, 0.15f, 0.90f, 0.55f, 0.60f, 0.50f },
+        /* 24 Neon Liquid */ { 0.35f, 0.55f, 0.45f, 0.00f, 0.10f, 0.90f, 0.50f, 0.65f, 0.65f },
+        /* 25 Neon Wire   */ { 0.50f, 0.55f, 0.45f, 0.00f, 0.15f, 0.90f, 0.50f, 0.60f, 0.60f },
     };
     constexpr int n = int(sizeof(t) / sizeof(t[0]));
     return t[index < 0 ? 0 : (index >= n ? n - 1 : index)];

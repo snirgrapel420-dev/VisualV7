@@ -222,3 +222,31 @@ vec3 sceneBackdrop(vec3 rd, vec3 A, vec3 B, vec3 C)
     float st = step(0.994, hash12(floor(sg))) * smoothstep(0.32, 0.0, length(fract(sg) - 0.5));
     return neb + C * st * (0.5 + 0.8 * uHigh);
 }
+
+// ---- NEON LINE ART (the neon scenes: Mandala, Helix, Chevron Tunnel, Liquid, Wireframe) ----------------
+float sdSeg(vec2 p, vec2 a, vec2 b)
+{
+    vec2 pa = p - a, ba = b - a;
+    return length(pa - ba * clamp(dot(pa, ba) / max(dot(ba, ba), 1e-8), 0.0, 1.0));
+}
+// a glowing neon tube at distance d: white-hot core, saturated body, soft coloured halo.
+// w = tube radius (screen units, y in -0.5..0.5); glow scales the halo
+vec3 neonTube(float d, float w, vec3 col, float glow)
+{
+    float core = 1.0 - smoothstep(w * 0.15, w * 0.7, d);
+    float body = 1.0 - smoothstep(w * 0.5, w * 1.6, d);
+    float halo = exp(-d / (w * 2.5)) * 0.55 + exp(-d / (w * 9.0)) * 0.12;
+    return col * (body * 1.25 + halo * glow) + mix(col, vec3(1.0), 0.45) * core * 0.9;
+}
+// 4-way mirror (Photism-style symmetry) with an optional kaleidoscope fold of n segments (n < 1.5: none)
+vec2 neonFold(vec2 p, float n)
+{
+    p = abs(p);
+    if (n > 1.5)
+    {
+        float a = atan(p.y, p.x), seg = PI / n;
+        a = abs(mod(a, 2.0 * seg) - seg);
+        p = length(p) * vec2(cos(a), sin(a));
+    }
+    return p;
+}

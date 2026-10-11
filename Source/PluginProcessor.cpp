@@ -195,6 +195,11 @@ void DaliVisualProcessor::applySceneInit(bool undoable)
         /* 18 Sierpinski */ { 0.45f, 0.06f, 0.20f, 0.15f, 0.30f, 0.12f, 0.30f },
         /* 19 Torus      */ { 0.40f, 0.20f, 0.20f, 0.15f, 0.25f, 0.12f, 0.30f },
         /* 20 Image      */ { 0.20f, 0.20f, 0.00f, 0.10f, 0.25f, 0.10f, 0.00f },
+        /* 21 N.Mandala  */ { 0.35f, 0.00f, 0.25f, 0.15f, 0.20f, 0.12f, 0.30f },
+        /* 22 N.Helix    */ { 0.35f, 0.00f, 0.25f, 0.15f, 0.20f, 0.12f, 0.30f },
+        /* 23 N.Tunnel   */ { 0.35f, 0.15f, 0.30f, 0.15f, 0.20f, 0.12f, 0.30f },
+        /* 24 N.Liquid   */ { 0.30f, 0.20f, 0.20f, 0.15f, 0.20f, 0.12f, 0.30f },
+        /* 25 N.Wire     */ { 0.35f, 0.00f, 0.25f, 0.15f, 0.20f, 0.12f, 0.30f },
     };
     const int row = juce::jlimit(0, int(sizeof(amt) / sizeof(amt[0])) - 1, scene);
     const float* k = amt[row];
