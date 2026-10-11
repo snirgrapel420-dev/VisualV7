@@ -15,6 +15,8 @@ C++17 · JUCE 8 · CMake · OpenGL 3.2 core / GLSL 150.
   Bloom מנורמל לרזולוציה, Sharpness, ורינדור 150%/200% (supersampling). סצנות חדשות: Mandelbulb Bloom, Fourth Dimension.
 * **v5.2:** 13 סצנות תלת-ממדיות + Image Reactor. חדשות: Mandelbox Temple, Crystal Sanctum, Menger Void, Quaternion Julia,
   Fractal Ocean, Dimension Gate.
+* **v7.4:** **לוגו לתוכנה** — אייקון עם המונוגרמה DA כשלט ניאון (ורוד-סגול-ציאן) ומתחתיו DALI AUDIO במלואו (בגדלים הקטנים — DA בלבד), מובנה באפליקציה ב-Windows וב-Mac,
+  בקובץ ההתקנה של Windows וב"אפליקציות". המקור: `Tools/Icon/make_icon.py` → `Resources/icon/` + `Installer/Windows/DaliVisual.ico`.
 * **v7.3:** **מתקינים אמיתיים** (נבנים אוטומטית ב-CI, בתיקיית `Installer/`):
   Windows — `DaliVisual-<גרסה>-Windows-Setup.exe` (Inno Setup): VST3 ל-`C:\Program Files\Common Files\VST3`, האפליקציה ל-`Program Files\Dali Audio`,
   קיצור בתפריט התחל ובשולחן העבודה, מסיר התקנה ב"אפליקציות". macOS — `DaliVisual-<גרסה>-macOS-Installer.pkg`: AU, VST3 ו-Standalone

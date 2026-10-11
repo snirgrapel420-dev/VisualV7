@@ -4,6 +4,8 @@
     <organization>com.daliaudio</organization>
     <welcome file="welcome.html" mime-type="text/html"/>
     <conclusion file="conclusion.html" mime-type="text/html"/>
+    <background file="logo.png" alignment="bottomleft" scaling="none"/>
+    <background-darkAqua file="logo.png" alignment="bottomleft" scaling="none"/>
     <options customize="allow" require-scripts="false" rootVolumeOnly="true" hostArchitectures="arm64,x86_64"/>
     <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
     <os-version min="10.13"/>

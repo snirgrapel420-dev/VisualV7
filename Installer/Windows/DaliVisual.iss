@@ -38,7 +38,11 @@ DefaultDirName={autopf}\{#AppPublisher}\{#AppName}
 DefaultGroupName={#AppPublisher}
 DisableProgramGroupPage=yes
 UninstallDisplayName={#AppName}
-UninstallDisplayIcon={app}\{#AppExe}
+; the DALI VISUAL logo on the Setup file, the wizard and in "Apps & features"
+SetupIconFile=DaliVisual.ico
+UninstallDisplayIcon={uninstallexe}
+WizardImageFile=wizard_large_1x.bmp,wizard_large_2x.bmp
+WizardSmallImageFile=wizard_small_1x.bmp,wizard_small_2x.bmp
 OutputDir={#OutDir}
 OutputBaseFilename=DaliVisual-{#AppVersion}-Windows-Setup
 Compression=lzma2/max

@@ -8,7 +8,7 @@
 #    3. FetchContent download of JUCE 8.0.4
 # =============================================================================
 cmake_minimum_required(VERSION 3.22)
-project(DaliVisual VERSION 7.3.0 LANGUAGES C CXX)
+project(DaliVisual VERSION 7.4.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -36,6 +36,8 @@ juce_add_plugin(DaliVisual
     COMPANY_WEBSITE             "https://daliaudio.com"
     BUNDLE_ID                   com.daliaudio.dalivisual
     PRODUCT_NAME                "Dali Visual"
+    ICON_BIG                    "${CMAKE_CURRENT_SOURCE_DIR}/Resources/icon/icon_1024.png"   # app icon (.icns / .ico are generated from it)
+    ICON_SMALL                  "${CMAKE_CURRENT_SOURCE_DIR}/Resources/icon/icon_256.png"
     PLUGIN_MANUFACTURER_CODE    Dali
     PLUGIN_CODE                 DvIs
     FORMATS                     VST3 AU Standalone

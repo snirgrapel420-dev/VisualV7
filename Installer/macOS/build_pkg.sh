@@ -51,6 +51,8 @@ sed "s/@VERSION@/$VERSION/g" "$HERE/distribution.xml" > "$WORK/distribution.xml"
 sed "s/@VERSION@/$VERSION/g" "$HERE/resources/welcome.html" > "$WORK/welcome.html"
 mkdir -p "$WORK/resources"
 cp "$WORK/welcome.html" "$HERE/resources/conclusion.html" "$WORK/resources/"
+# the DALI VISUAL logo in the bottom-left corner of the installer window
+cp "$HERE/../../Resources/icon/icon_256.png" "$WORK/resources/logo.png"
 
 PKG="$OUT/DaliVisual-$VERSION-macOS-Installer.pkg"
 SIGN=()
