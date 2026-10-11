@@ -50,6 +50,6 @@ struct License
     static juce::String demoSummary();           // what the demo includes, one line
     static juce::String statusText();            // "Full version (...)", "Trial - 5 days left", "Demo"
 
-    static constexpr const char* buyUrl = "https://daliaudio.com";
+    static constexpr const char* buyUrl = "https://ig.me/m/dalilama303_official";
 };
 } // namespace dali
