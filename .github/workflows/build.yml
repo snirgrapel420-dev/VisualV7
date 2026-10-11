@@ -2,7 +2,8 @@
 #  DALI VISUAL — CI build
 #   • tests    : core unit tests (DSP / modulation / image) + GLSL shader harness (Linux, Mesa)
 #   • build    : VST3 + Standalone for Windows (x64); VST3 + AU + Standalone for macOS (Universal arm64 + x86_64)
-#   • release  : on a tag "v*" the zipped builds are attached to a GitHub Release
+#   • installer: Windows Setup .exe (Inno Setup) and macOS .pkg — install VST3 / AU / Standalone in the right folders
+#   • release  : on a tag "v*" the installers and the zipped builds are attached to a GitHub Release
 #  Artifacts: Actions → the run → "Artifacts" at the bottom of the page.
 # =============================================================================
 name: Build
@@ -159,6 +160,39 @@ jobs:
           path: package/${{ matrix.artifact }}
           if-no-files-found: error
 
+      # ---- installers: one file the user double-clicks; it puts the plug-ins and the app where they belong ----
+      - name: Read version
+        id: ver
+        shell: bash
+        run: echo "version=$(sed -n 's/^project(DaliVisual VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Build installer (Windows, Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          $art = Join-Path $env:GITHUB_WORKSPACE "build\DaliVisual_artefacts\${{ env.BUILD_TYPE }}"
+          $out = Join-Path $env:GITHUB_WORKSPACE "installer-out"
+          & $iscc "/DAppVersion=${{ steps.ver.outputs.version }}" "/DBuildDir=$art" "/DOutDir=$out" "Installer\Windows\DaliVisual.iss"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem $out
+
+      - name: Build installer (macOS, .pkg)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          # run through bash: the executable bit is lost when the files are uploaded through the GitHub website
+          bash ./Installer/macOS/build_pkg.sh "$PWD/build/DaliVisual_artefacts/${{ env.BUILD_TYPE }}" "${{ steps.ver.outputs.version }}" "$PWD/installer-out"
+          ls -la installer-out
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}-Installer
+          path: installer-out
+          if-no-files-found: error
+
   # ---------------------------------------------------------------------------
   release:
     name: GitHub Release
@@ -173,13 +207,19 @@ jobs:
           path: dist
           pattern: DaliVisual-*
 
-      - name: Zip builds
+      - name: Zip builds, collect installers
         run: |
+          mkdir -p release
           cd dist
-          for d in DaliVisual-*; do zip -qry "../$d-${GITHUB_REF_NAME}.zip" "$d"; done
-          ls -la ..
+          for d in DaliVisual-*; do
+            case "$d" in
+              *-Installer) cp "$d"/*.exe "$d"/*.pkg ../release/ 2>/dev/null || true ;;
+              *)           zip -qry "../release/$d-${GITHUB_REF_NAME}.zip" "$d" ;;
+            esac
+          done
+          ls -la ../release
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: DaliVisual-*.zip
+          files: release/*
           generate_release_notes: true
