@@ -66,17 +66,17 @@ inline const std::array<SceneInfo, 25>& sceneLibrary()
           "A dimension machine: nested rings turning around a living core. The build aligns the rings into a portal; the kick makes them expand." },
         { "image",    "20  IMAGE REACTOR",     "scene_17_image_reactor_frag",     { "Motion", "Reactivity", "Zoom", "Trails" },
           "Your own image becomes the visual: its structure, colours and contours drive generative modes (Flow Lines, Flow Paint, Pulse, ...), moved by the sound itself." },
-        // ---- NEON: mirrored neon line art (v7) ----
-        { "neonmandala", "21  NEON MANDALA",  "scene_47_neon_mandala_frag",        { "Symmetry", "Glow", "Zoom Speed", "Colour Family" },
-          "Mirrored neon line art rising out of the centre, layer after layer. The kick punches it outward, the snare flashes the chevrons, the build multiplies the symmetry." },
-        { "neonhelix",   "22  NEON HELIX",    "scene_48_neon_helix_frag",          { "Strands", "Glow", "Scroll Speed", "Colour Family" },
-          "A tower of neon bars twisting around an invisible axis, mirrored both ways. The kick shoots the bars wide, the mids melt them, the peak adds a second strand." },
-        { "neontunnel",  "23  NEON CHEVRON TUNNEL", "scene_49_neon_chevron_tunnel_frag", { "Frame Shape", "Glow", "Flight Speed", "Colour Family" },
-          "Flying down a tunnel of neon diamonds, chevrons and brackets. The bass is the speed, the kick flares the rails, the snare flashes the diamonds." },
-        { "neonliquid",  "24  NEON LIQUID",   "scene_50_neon_liquid_frag",         { "Melt", "Glow", "Flow Speed", "Colour Family" },
-          "Mirrored neon strokes melting like hot glass, with a chromatic split. The build melts them further, the kick sends a shock wave through the glass." },
-        { "neonwire",    "25  NEON WIREFRAME", "scene_51_neon_wireframe_frag",     { "Symmetry", "Glow", "Spin Speed", "Colour Family" },
-          "Glowing 3D wireframe solids turning in space, mirrored into a symmetric sculpture. The build unfolds more shells, the kick punches them outward." },
+        // ---- NEON 3D (v7.1): glossy surfaces, neon light strips, mirrored space ----
+        { "neonnave",    "21  NEON NAVE",       "scene_47_neon_nave_frag",        { "Twist", "Glow", "Flight Speed", "Colour Family" },
+          "Flying down a mirrored 3D hall of glossy black ribs, neon strips and golden lamps. The bass is the speed, the kick flares every strip, the build twists the hall into a spiral." },
+        { "neonhelix",   "22  NEON HELIX TOWER", "scene_48_neon_helix_tower_frag", { "Strands", "Glow", "Rise Speed", "Colour Family" },
+          "A 3D tower of neon bars twisting around a golden spine, rising past the camera. The kick shoots the bars wide, the peak adds a second strand." },
+        { "neonmachine", "23  NEON MACHINE",    "scene_49_neon_machine_frag",      { "Mirror", "Glow", "Orbit Speed", "Colour Family" },
+          "A sleek neon-lit machine on a mirror floor, filmed and mirrored like a kaleidoscope. The kick flares its light strips, the snare strobes the headlights, the build closes in." },
+        { "neonmolten",  "24  NEON MOLTEN",     "scene_50_neon_molten_frag",       { "Melt", "Glow", "Drift Speed", "Colour Family" },
+          "Drifting between waves of liquid chrome past rows of neon bars that melt with the music. The kick sends a shock wave through the chrome, the build melts everything further." },
+        { "neongyro",    "25  NEON GYROSCOPE",  "scene_51_neon_gyroscope_frag",    { "Mirror", "Glow", "Spin Speed", "Colour Family" },
+          "Nested neon rings turning around a black mirror core, crossed by great beams of light. The build aligns the rings into a portal, the kick punches them outward." },
     } };
     return s;
 }
@@ -109,11 +109,11 @@ inline const SceneInit& sceneInit(int index)
         /* 19 Torus       */ { 0.60f, 0.60f, 0.50f, 0.00f, 0.50f, 0.90f, 0.55f, 0.60f, 0.55f },
         /* 20 Image       */ { 0.50f, 0.50f, 0.50f, 0.50f, 0.30f, 0.90f, 0.50f, 0.30f, 0.50f },
         // the neon scenes: little trip (they carry their own symmetry), more bloom for the tubes
-        /* 21 Neon Mandala*/ { 0.10f, 0.55f, 0.45f, 0.00f, 0.15f, 0.90f, 0.50f, 0.65f, 0.55f },
-        /* 22 Neon Helix  */ { 0.10f, 0.55f, 0.45f, 0.00f, 0.10f, 0.90f, 0.50f, 0.65f, 0.60f },
-        /* 23 Neon Tunnel */ { 0.15f, 0.55f, 0.50f, 0.00f, 0.15f, 0.90f, 0.55f, 0.60f, 0.50f },
-        /* 24 Neon Liquid */ { 0.35f, 0.55f, 0.45f, 0.00f, 0.10f, 0.90f, 0.50f, 0.65f, 0.65f },
-        /* 25 Neon Wire   */ { 0.50f, 0.55f, 0.45f, 0.00f, 0.15f, 0.90f, 0.50f, 0.60f, 0.60f },
+        /* 21 Neon Nave   */ { 0.30f, 0.55f, 0.45f, 0.00f, 0.20f, 0.90f, 0.50f, 0.70f, 0.55f },
+        /* 22 Neon Helix  */ { 0.10f, 0.55f, 0.45f, 0.00f, 0.20f, 0.90f, 0.50f, 0.70f, 0.60f },
+        /* 23 Neon Machine*/ { 0.80f, 0.55f, 0.40f, 0.00f, 0.25f, 0.90f, 0.50f, 0.70f, 0.60f },
+        /* 24 Neon Molten */ { 0.35f, 0.55f, 0.45f, 0.00f, 0.20f, 0.90f, 0.50f, 0.65f, 0.65f },
+        /* 25 Neon Gyro   */ { 0.50f, 0.55f, 0.45f, 0.00f, 0.20f, 0.90f, 0.50f, 0.70f, 0.60f },
     };
     constexpr int n = int(sizeof(t) / sizeof(t[0]));
     return t[index < 0 ? 0 : (index >= n ? n - 1 : index)];

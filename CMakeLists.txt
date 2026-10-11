@@ -8,7 +8,7 @@
 #    3. FetchContent download of JUCE 8.0.4
 # =============================================================================
 cmake_minimum_required(VERSION 3.22)
-project(DaliVisual VERSION 7.0.0 LANGUAGES C CXX)
+project(DaliVisual VERSION 7.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -47,7 +47,9 @@ juce_add_plugin(DaliVisual
     MICROPHONE_PERMISSION_ENABLED TRUE
     MICROPHONE_PERMISSION_TEXT  "Dali Visual listens to audio input to drive the visuals."
     VST3_CATEGORIES             Fx Analyzer
-    COPY_PLUGIN_AFTER_BUILD     FALSE)
+    COPY_PLUGIN_AFTER_BUILD     FALSE
+    # Intel Macs with two GPUs: never fall back to the integrated GPU (Apple Silicon has one GPU)
+    PLIST_TO_MERGE "<plist><dict><key>NSSupportsAutomaticGraphicsSwitching</key><false/></dict></plist>")
 
 # ---- shaders + scene thumbnails embedded as BinaryData (names: file name with '.' -> '_') ----
 file(GLOB DALI_SHADERS CONFIGURE_DEPENDS
@@ -86,6 +88,7 @@ target_sources(DaliVisual PRIVATE
     Source/Output/NativeWindow.cpp
     Source/Output/VideoRecorder.cpp
     Source/Output/VideoEncoderWin.cpp
+    Source/Output/GpuSelect.cpp
     Source/Render/RecordCapture.cpp
     Source/Core/StandaloneSupport.cpp
     Source/Core/License.cpp
@@ -109,7 +112,7 @@ if(MSVC)
 endif()
 if(WIN32)
     # ole32: WASAPI loopback (system audio) · Media Foundation: the video recorder (H.264 + AAC)
-    target_link_libraries(DaliVisual PRIVATE ole32 mfplat mfreadwrite mfuuid)
+    target_link_libraries(DaliVisual PRIVATE ole32 mfplat mfreadwrite mfuuid dxgi advapi32)
 endif()
 if(APPLE)
     # the video recorder: AVAssetWriter (H.264 via VideoToolbox + AAC)

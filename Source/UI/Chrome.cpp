@@ -3,6 +3,7 @@
 #include "../Output/OutputManager.h"
 #include "../Output/VideoRecorder.h"
 #include "../Render/Library.h"
+#include "../Output/GpuSelect.h"
 
 namespace dali
 {
@@ -285,6 +286,57 @@ void HeaderBar::showLockedNotice()
                                  });
 }
 
+// The picture runs on an integrated GPU (Intel UHD...) although the computer has a dedicated one (RTX...):
+// offer the switch once (per process, and never again after "Don't ask again").
+void HeaderBar::checkGpu()
+{
+    juce::String renderer;
+    { const juce::SpinLock::ScopedLockType sl(proc.engineState.telemetry.infoLock); renderer = proc.engineState.telemetry.rendererInfo; }
+    if (renderer.isEmpty()) return;                                    // the renderer has not started yet
+    gpuChecked = true;
+    static bool askedThisProcess = false;
+    if (askedThisProcess || !gpu::isSupported()) return;
+    const auto glName = renderer.upToFirstOccurrenceOf("|", false, false).trim();
+    if (!gpu::isIntegratedName(glName.toStdString())) return;
+    const juce::String dedicated(gpu::dedicatedName());
+    if (dedicated.isEmpty() || gpu::getPreference() == 2) return;
+    {
+        juce::PropertiesFile f(AppPrefs::options());
+        if (f.getBoolValue("gpuWarnDismissed", false)) return;
+    }
+    askedThisProcess = true;
+    const juce::String host(gpu::hostProgramName());
+    juce::AlertWindow::showAsync(juce::MessageBoxOptions()
+                                     .withIconType(juce::MessageBoxIconType::WarningIcon)
+                                     .withTitle("Graphics card")
+                                     .withMessage("Dali Visual is running on the integrated graphics (" + glName + ").\n"
+                                                  "Your computer also has " + dedicated + ", which is much faster.\n\n"
+                                                  "Switch " + host + " to " + dedicated + "? (Same as Windows Settings > Display > Graphics.) "
+                                                  "Restart " + host + " afterwards.")
+                                     .withButton("Use " + dedicated)
+                                     .withButton("Not Now")
+                                     .withButton("Don't Ask Again"),
+                                 [host, dedicated](int result)
+                                 {
+                                     if (result == 0)
+                                     {
+                                         juce::PropertiesFile f(AppPrefs::options());
+                                         f.setValue("gpuWarnDismissed", true);
+                                         f.saveIfNeeded();
+                                     }
+                                     if (result != 1) return;
+                                     const bool ok = gpu::setPreference(2);
+                                     juce::AlertWindow::showAsync(juce::MessageBoxOptions()
+                                                                      .withIconType(ok ? juce::MessageBoxIconType::InfoIcon : juce::MessageBoxIconType::WarningIcon)
+                                                                      .withTitle(ok ? "Restart needed" : "Could not change the setting")
+                                                                      .withMessage(ok ? "Close and reopen " + host + ": it will start on " + dedicated + "."
+                                                                                      : juce::String("Set it by hand: Windows Settings > System > Display > Graphics > ")
+                                                                                            + host + " > High performance.")
+                                                                      .withButton("OK"),
+                                                                  [](int) {});
+                                 });
+}
+
 void HeaderBar::updateLicenseState()
 {
     const auto mode = License::mode();
@@ -531,7 +583,8 @@ SettingsPanel::SettingsPanel(DaliVisualProcessor& p) : proc(p), display(p), sour
              &outHeader, &audioHeader, &midiHeader, &infoHeader, &display, &source, &resolution, &displayLabel,
              &resolutionLabel, &sourceLabel, &sourceStatus, &midiLast, &info, &vsync, &previewWhileOutput,
              &noteScenes, &programScenes, &identify, &openOutput, &clearMidi, &resetAll, &restoreSession,
-             &recHeader, &recFormat, &recQuality, &recFps, &recLabel, &recFolderLabel, &recFolder, &recChoose, &recOpen, &licenseBtn })
+             &recHeader, &recFormat, &recQuality, &recFps, &recLabel, &recFolderLabel, &recFolder, &recChoose, &recOpen, &licenseBtn,
+             &gpuLabel, &gpuChoice })
         addAndMakeVisible(c);
 
     recLabel.setText("Format", juce::dontSendNotification);
@@ -574,7 +627,7 @@ SettingsPanel::SettingsPanel(DaliVisualProcessor& p) : proc(p), display(p), sour
     displayLabel.setText("Output display", juce::dontSendNotification);
     resolutionLabel.setText("Render resolution", juce::dontSendNotification);
     sourceLabel.setText("Listen to", juce::dontSendNotification);
-    for (auto* l : { &displayLabel, &resolutionLabel, &sourceLabel, &sourceStatus, &midiLast, &info, &recLabel, &recFolderLabel, &recFolder })
+    for (auto* l : { &displayLabel, &resolutionLabel, &sourceLabel, &sourceStatus, &midiLast, &info, &recLabel, &recFolderLabel, &recFolder, &gpuLabel })
     {
         l->setFont(juce::Font(juce::FontOptions(12.5f)));
         l->setColour(juce::Label::textColourId, colours::textDim);
@@ -588,6 +641,32 @@ SettingsPanel::SettingsPanel(DaliVisualProcessor& p) : proc(p), display(p), sour
     resolution.addItem("100 %  (native, fixed)", 4);
     resolution.addItem("150 %  (supersampled - very heavy)", 5);
     resolution.onChange = [this] { proc.engineState.output.renderScaleIndex = resolution.getSelectedId() - 1; };
+
+    // graphics card (Windows: the per-program preference of the program we run in - DAW or standalone)
+    gpuLabel.setText("Graphics card", juce::dontSendNotification);
+    {
+        const juce::String dedicated(gpu::dedicatedName());
+        gpuChoice.addItem("Let Windows decide", 1);
+        gpuChoice.addItem("Power saving (integrated GPU)", 2);
+        gpuChoice.addItem("High performance" + (dedicated.isNotEmpty() ? "  (" + dedicated + ")" : juce::String()), 3);
+        gpuChoice.setSelectedId(juce::jmax(0, gpu::getPreference()) + 1, juce::dontSendNotification);
+        gpuChoice.setTooltip("Which graphics card runs " + juce::String(gpu::hostProgramName())
+                             + " (and Dali Visual inside it). Takes effect after restarting it.");
+        gpuChoice.onChange = [this]
+        {
+            const juce::String host(gpu::hostProgramName());
+            const bool ok = gpu::setPreference(gpuChoice.getSelectedId() - 1);
+            juce::AlertWindow::showAsync(juce::MessageBoxOptions()
+                                             .withIconType(ok ? juce::MessageBoxIconType::InfoIcon : juce::MessageBoxIconType::WarningIcon)
+                                             .withTitle(ok ? "Restart needed" : "Could not change the setting")
+                                             .withMessage(ok ? "Close and reopen " + host + " to use the chosen graphics card."
+                                                             : "Set it by hand: Windows Settings > System > Display > Graphics > " + host)
+                                             .withButton("OK"),
+                                         [](int) {});
+        };
+        gpuLabel.setVisible(gpu::isSupported());
+        gpuChoice.setVisible(gpu::isSupported());
+    }
     vsync.onClick = [this] { proc.engineState.output.vsync = vsync.getToggleState(); };
     previewWhileOutput.onClick = [this] { proc.engineState.output.previewWhileOutput = previewWhileOutput.getToggleState(); };
     noteScenes.onClick = [this] { proc.midi.noteSceneSwitching = noteScenes.getToggleState(); };
@@ -604,7 +683,7 @@ SettingsPanel::SettingsPanel(DaliVisualProcessor& p) : proc(p), display(p), sour
     restoreSession.setToggleState(AppPrefs::restoreSession(), juce::dontSendNotification);
     restoreSession.onClick = [this] { AppPrefs::setRestoreSession(restoreSession.getToggleState()); };
     restoreSession.setVisible(proc.isStandalone());
-    setSize(580, 740);
+    setSize(580, gpu::isSupported() ? 770 : 740);
     refresh();
     startTimerHz(4);
 }
@@ -673,6 +752,7 @@ void SettingsPanel::resized()
     auto a = row(30); displayLabel.setBounds(a.removeFromLeft(150)); identify.setBounds(a.removeFromRight(140).reduced(0, 2));
     a.removeFromRight(8); display.setBounds(a.reduced(0, 2));
     a = row(30); resolutionLabel.setBounds(a.removeFromLeft(150)); resolution.setBounds(a.reduced(0, 2));
+    if (gpuChoice.isVisible()) { a = row(30); gpuLabel.setBounds(a.removeFromLeft(150)); gpuChoice.setBounds(a.reduced(0, 2)); }
     vsync.setBounds(row(26));
     previewWhileOutput.setBounds(row(26));
     openOutput.setBounds(row(34).withWidth(200).reduced(0, 3));

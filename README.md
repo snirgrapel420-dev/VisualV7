@@ -15,6 +15,13 @@ C++17 · JUCE 8 · CMake · OpenGL 3.2 core / GLSL 150.
   Bloom מנורמל לרזולוציה, Sharpness, ורינדור 150%/200% (supersampling). סצנות חדשות: Mandelbulb Bloom, Fourth Dimension.
 * **v5.2:** 13 סצנות תלת-ממדיות + Image Reactor. חדשות: Mandelbox Temple, Crystal Sanctum, Menger Void, Quaternion Julia,
   Fractal Ocean, Dimension Gate.
+* **v7.1:** **סצנות 21–25 נבנו מחדש בתלת-ממד אמיתי** (raymarching, משטחים מבריקים, פסי ניאון פולטי אור, החזרות, מרחב ממוראה):
+  21 Neon Nave (טיסה באולם מראות עם צלעות, פסי ניאון ומנורות זהב; BUILD מפתל אותו לספירלה) · 22 Neon Helix Tower (מגדל
+  פסי ניאון מסתובב סביב עמוד זהב) · 23 Neon Machine (מכונה/רכב ניאון על רצפת מראה, מצולם וממוראה כמו קליידוסקופ) ·
+  24 Neon Molten (כרום נוזלי ופסי ניאון שנמסים) · 25 Neon Gyroscope (טבעות ניאון סביב ליבת מראה עם קרני אור ב-X).
+  **כרטיס מסך:** ב-Windows התוכנה העצמאית מבקשת את כרטיס המסך החזק (NVIDIA/AMD) אוטומטית; ב-SETTINGS נוספה בחירת
+  "Graphics card" (Windows) לתוכנה שבה Dali Visual רץ (ה-DAW או ה-Standalone), ואזהרה כשהתמונה רצה על Intel UHD למרות
+  שיש RTX. ב-Mac עם שני כרטיסים – תמיד הכרטיס החזק (Apple Silicon: כרטיס אחד).
 * **v7.0:** **5 סצנות NEON חדשות (21–25)** בהשראת סגנון הניאון הסימטרי: צינורות ניאון עם ליבה לבנה והילה צבעונית, מראה כפולה
   (ימין-שמאל ולמעלה-למטה) ומשפחות צבע ורוד/זהב · ורוד חם/ענבר · סגול/ציאן. 21 Neon Mandala (שכבות מנדלה שעולות מהמרכז, BUILD
   מכפיל את הסימטריה) · 22 Neon Helix (מגדל פסי ניאון מסתובב, PEAK מוסיף סליל שני) · 23 Neon Chevron Tunnel (טיסה במנהרת יהלומים

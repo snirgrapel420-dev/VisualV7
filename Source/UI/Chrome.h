@@ -53,12 +53,19 @@ public:
 
 private:
     void changeListenerCallback(juce::ChangeBroadcaster* broadcaster) override;
-    void timerCallback() override { updateLiveButton(); updateRecButton(); if (++licenseTicks % 20 == 0) updateLicenseState(); }
+    void timerCallback() override
+    {
+        updateLiveButton(); updateRecButton();
+        if (++licenseTicks % 20 == 0) updateLicenseState();
+        if (!gpuChecked && licenseTicks % 8 == 0) checkGpu();
+    }
     void updateLiveButton();
     void updateRecButton();
     void toggleRecording();
     void updateLicenseState();
     void showLockedNotice();
+    void checkGpu();
+    bool gpuChecked = false;
 
     DaliVisualProcessor& proc;
     ParamCombo scene;
@@ -104,7 +111,8 @@ private:
                  infoHeader { "System" };
     DisplayCombo display;
     SourceCombo source;
-    juce::ComboBox resolution;
+    juce::ComboBox resolution, gpuChoice;
+    juce::Label gpuLabel;
     juce::Label displayLabel, resolutionLabel, sourceLabel, sourceStatus, midiLast, info;
     juce::ToggleButton vsync { "V-Sync (lock to the display refresh rate)" },
                        previewWhileOutput { "Keep the preview running while live" },
